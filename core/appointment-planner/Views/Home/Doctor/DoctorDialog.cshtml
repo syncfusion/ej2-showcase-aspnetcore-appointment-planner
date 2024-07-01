@@ -1,0 +1,316 @@
+@using Syncfusion.EJ2
+@inject AppointmentService service
+
+@{
+    List<Specialization> specializationData = service.Specializations;
+    List<TextIdData> experienceData = service.Experience;
+    List<TextIdData> dutyTimingsData = service.DutyTimings;
+}
+
+<div class="new-doctor-container" style="display:none">
+  <ejs-dialog id="newDoctorObj" width="390px" cssClass="new-doctor-dialog" isModal="true" visible="false"
+        header="New Doctor" showCloseIcon="true" target="body" beforeOpen="onDoctorDialogBeforeOpen" footerTemplate="<div class='button-container'>
+        <button id='cancel'>Cancel</button><button id='save'>Save</button></div>">
+    <e-dialog-animationsettings effect="None"></e-dialog-animationsettings>
+    <e-content-template>
+        <form id="new-doctor-form">
+            <div class="name-container">
+                <ejs-textbox id="DoctorName" name="Name" cssClass="doctor-name e-field" placeholder="Doctor Name" floatLabelType="Always"></ejs-textbox>
+            </div>
+            <div class="gender-container">
+                <div class="gender">
+                    <div><label>Gender</label></div>
+                    <div class="e-btn-group e-round-corner e-field">
+                        <input type="radio" id="patientCheckMale" name="Gender" value="Male" checked />
+                        <label class="e-btn" for="patientCheckMale">Male</label>
+                        <input type="radio" id="patientCheckFemale" name="Gender" value="Female" />
+                        <label class="e-btn" for="patientCheckFemale">Female</label>
+                    </div>
+                </div>
+                <div class="mobile">
+                    <ejs-maskedtextbox id="DoctorMobile" name="Mobile" cssClass="e-field" width="180px" placeholder="Mobile Number"
+                                        mask="(999) 999-9999" floatLabelType="Always"></ejs-maskedtextbox>
+                </div>
+            </div>
+            <div class="email-container">
+                <ejs-textbox id="DoctorEmail" name="Email" cssClass="e-field" placeholder="Email" floatLabelType="Always"></ejs-textbox>
+            </div>
+            <div class="education-container">
+                <div class="department">
+                    <ejs-dropdownlist id="Specialization" width="160px" cssClass="doctor-department e-field" index=0
+                                        placeholder="Department" floatLabelType="Always" dataSource="@specializationData">
+                        <e-dropdownlist-fields text="Text" value="Id"></e-dropdownlist-fields>
+                    </ejs-dropdownlist>
+                </div>
+                <div class="education">
+                    <ejs-textbox id="Education" name="Education" cssClass="e-field" width="180px" placeholder="Education"
+                                    floatLabelType="Always"></ejs-textbox>
+                </div>
+            </div>
+            <div class="experience-container">
+                <div class="experience">
+                    <ejs-dropdownlist id="Experience" name="Experience" cssClass="e-field" width="160px"
+                                        placeholder="Experience" index=0 floatLabelType="Always" dataSource="@experienceData">
+                        <e-dropdownlist-fields text="Text" value="Id"></e-dropdownlist-fields>
+                    </ejs-dropdownlist>
+                </div>
+                <div class="designation">
+                    <ejs-textbox id="Designation" name="Designation" cssClass="e-field" width="180px" placeholder="Designation"
+                                    floatLabelType="Always"></ejs-textbox>
+                </div>
+            </div>
+            <div class="duty-container">
+                <ejs-dropdownlist id="DutyTiming" cssClass="e-field" width="100%" placeholder="Duty Timing" index=0
+                                    floatLabelType="Always" dataSource="@dutyTimingsData">
+                    <e-dropdownlist-fields text="Text" value="Id"></e-dropdownlist-fields>
+                </ejs-dropdownlist>
+            </div>
+        </form>
+    </e-content-template>
+  </ejs-dialog>
+</div>
+
+<script type="text/javascript">
+    function onAddDoctor() {
+        if (document.querySelector("#newDoctorObj")) {
+            var dialogObj = document.querySelector("#newDoctorObj").ej2_instances[0];
+            dialogObj.header = 'New Doctor';
+            dialogObj.show();
+        }
+    }
+    function onDoctorDialogBeforeOpen(args) {
+        var cancelBtn = args.element.querySelector('#cancel');
+        var saveBtn = args.element.querySelector('#save');
+        if (cancelBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal'
+            });
+            btnObj.appendTo(cancelBtn);
+            cancelBtn.onclick = function (e) { onDoctorCancelClick(e); };
+        }
+        if (saveBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal',
+                isPrimary: true
+            });
+            btnObj.appendTo(saveBtn);
+            saveBtn.onclick = function (e) { onDoctorSaveClick(e); };
+        }
+        
+        var formElement = args.element.querySelector('#new-doctor-form');
+        if (formElement && formElement.ej2_instances) {
+            return;
+        }
+        var customFn = (e) => {
+            var argsLength = e.element.ej2_instances[0].value.length;
+            return (argsLength !== 0) ? argsLength >= 10 : false;
+        };
+        var rules = {};
+        rules.Name = { required: [true, 'Enter valid name'] };
+        rules.Mobile = { required: [customFn, 'Enter valid mobile number'] };
+        rules.Email = { required: [true, 'Enter valid email'], email: [true, 'Email address is invalid'] };
+        rules.Education = { required: [true, 'Enter valid education'] };
+        renderFormValidator(formElement, rules, document.querySelector("#newDoctorObj").ej2_instances[0].element);
+    }
+
+    function onDoctorSaveClick(e) {
+        var formElementContainer = document.querySelector('.new-doctor-dialog #new-doctor-form');
+        if (formElementContainer && formElementContainer.classList.contains('e-formvalidator') &&
+            !formElementContainer.ej2_instances[0].validate()) {
+            return;
+        }
+        var dialogObj = document.querySelector("#newDoctorObj").ej2_instances[0];
+        var obj = dialogObj.header === 'New Doctor' ? {} : @Html.Raw(Json.Serialize(ViewBag.ActiveData));
+        var formElement = [].slice.call(document.querySelectorAll('.new-doctor-dialog .e-field'));
+        for (var curElement of formElement) {
+            var columnName = curElement.querySelector('input').name;
+            var isCustomElement = curElement.classList.contains('e-ddl');
+            if (!ej.base.isNullOrUndefined(columnName) || isCustomElement) {
+                if (columnName === '' && isCustomElement) {
+                    columnName = curElement.querySelector('select').name;
+                    var instance = curElement.querySelector('input').ej2_instances[0];
+                    obj[columnName] = instance.value;
+                    if (columnName === 'Specialization') {
+                        obj.DepartmentId = instance.getDataByValue(instance.value).DepartmentId;
+                    }
+                } else if (columnName === 'Gender') {
+                    obj[columnName] = curElement.querySelector('input').checked ? 'Male' : 'Female';
+                } else {
+                    obj[columnName] = curElement.querySelector('input').value;
+                }
+            }
+        }
+        resetDoctorFormFields();
+        dialogObj = document.querySelector("#newDoctorObj").ej2_instances[0];
+        dialogObj.hide();
+        var currentRenderedPage = getCurrentPage();
+        var postUrl = currentRenderedPage === 'calendar' ? 'Home/UpdateCalendarDoctors' : 'Home/UpdateDoctors';
+        if (dialogObj.header === 'Edit Doctor') {
+            postUrl = 'Home/UpdateDoctorDetail';
+        }
+        var ajaxHTML = new ej.base.Ajax(postUrl, 'POST', true);
+        ajaxHTML.send(JSON.stringify(obj)).then(function (value) {
+            var doctorContent = document.querySelector('.active-doctor');
+            if (dialogObj.header === 'Edit Doctor' && doctorContent) {
+                updateDoctorDetail(value);
+            }
+            var drodownEle = document.querySelector('.choose-Specialist-container input');
+            if (currentRenderedPage !== 'calendar' && document.querySelector('.specialist-display')) {
+                updateDoctorsList(value);
+            }
+            else if (currentRenderedPage === 'calendar' && drodownEle) {
+                var instance = drodownEle.ej2_instances[0];
+                var obj = JSON.parse(value);
+                var dataSource = instance.dataSource;
+                instance.dataSource = [];
+                dataSource.push(obj);
+                instance.dataSource = dataSource;
+            }
+        });
+        if (ej.base.Browser.isDevice && dialogObj.header == 'New Doctor') {
+            var ajaxHTML = new ej.base.Ajax('Home/RefreshDoctorsDialog', 'POST', true);
+            ajaxHTML.send().then(function (value) {
+                var specialistDialogContent = document.querySelector('#specialistObj .e-dlg-content');
+                if (currentRenderedPage === 'calendar' && specialistDialogContent) {
+                    specialistDialogContent.innerHTML = '';
+                    specialistDialogContent.innerHTML = value.toString();
+                }
+            });
+        }
+    }
+
+    function onDoctorCancelClick(e) {
+        resetDoctorFormFields();
+        if (document.querySelector("#newDoctorObj")) {
+            var dialogObj = document.querySelector("#newDoctorObj").ej2_instances[0];
+            dialogObj.hide();
+        }
+    }
+
+    function showDoctorDetails() {
+        var dialogObj = document.querySelector("#newDoctorObj");
+        if (dialogObj) {
+            var dialogInstance = dialogObj.ej2_instances[0];
+            dialogInstance.header = 'Edit Doctor';
+            dialogInstance.show();
+        }
+        var obj = @Html.Raw(Json.Serialize(ViewBag.ActiveData));
+        var formElement = [].slice.call(document.querySelectorAll('.new-doctor-dialog .e-field'));
+        for (var curElement of formElement) {
+            var columnName = curElement.querySelector('input').name;
+            var isCustomElement = curElement.classList.contains('e-ddl');
+            if (!ej.base.isNullOrUndefined(columnName) || isCustomElement) {
+                if (columnName === '' && isCustomElement) {
+                    columnName = curElement.querySelector('select').name;
+                    var instance = curElement.querySelector('input').ej2_instances[0];
+                    instance.value = obj[columnName];
+                    instance.dataBind();
+                } else if (columnName === 'Gender') {
+                    if (obj[columnName] === 'Male') {
+                        curElement.querySelectorAll('input')[0].checked = true;
+                    } else {
+                        curElement.querySelectorAll('input')[1].checked = true;
+                    }
+                } else if (columnName === 'Mobile') {
+                    curElement.querySelector('input').ej2_instances[0].value =
+                        obj[columnName].replace(/[ -.*+?^${}()|[\]\\]/g, '');
+                } else {
+                    curElement.querySelector('input').value = obj[columnName];
+                }
+            }
+        }
+    }
+
+    function resetDoctorFormFields() {
+        var formElement = [].slice.call(document.querySelectorAll('.new-doctor-dialog .e-field'));
+        destroyErrorElement(document.querySelector('#new-doctor-form'), formElement);
+        for(var curElement of formElement) {
+            var columnName = curElement.querySelector('input').name;
+            var isCustomElement = curElement.classList.contains('e-ddl');
+            if (!ej.base.isNullOrUndefined(columnName) || isCustomElement) {
+                if (columnName === '' && isCustomElement) {
+                    columnName = curElement.querySelector('select').name;
+                    var instance = curElement.querySelector('input').ej2_instances[0];
+                    instance.value = instance.dataSource[0].Id;
+                } else if (columnName === 'Gender') {
+                    curElement.querySelectorAll('input')[0].checked = true;
+                } else if (columnName === 'Mobile') {
+                    curElement.querySelector('input').ej2_instances[0].value = '';
+                } else {
+                    curElement.querySelector('input').value = '';
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+.new-doctor-dialog {
+  max-height: 98% !important;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .e-float-input input {
+  color: #333 !important;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .name-container,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .email-container,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .education-container,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .experience-container {
+  padding-bottom: 16px;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .education-container,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .experience-container {
+  display: flex;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .gender,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .education-container .department,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .experience-container .experience {
+  padding-right: 8px;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .mobile,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .education-container .education,
+.new-doctor-dialog .e-dlg-content #new-doctor-form .experience-container .designation {
+  padding-left: 8px;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .gender {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .gender .e-btn-group input:checked+label.e-btn {
+  background-color: #e6e6e6;
+  border-color: #adadad;
+  box-shadow: inset 0 3px 5px #000 20;
+  color: #333;
+  outline: 0 solid #fff;
+  outline-offset: 0;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .gender label:not(.e-btn) {
+  font-weight: bold;
+  color: #333;
+  font-size: 12px;
+  font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif, "-apple-system", "BlinkMacSystemFont";
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .gender .e-btn-group {
+  height: 32px;
+  margin-top: 8px;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .gender .e-btn-group label {
+  width: 50%;
+}
+
+.new-doctor-dialog .e-dlg-content #new-doctor-form .gender-container .mobile {
+  flex: 1;
+}
+</style>

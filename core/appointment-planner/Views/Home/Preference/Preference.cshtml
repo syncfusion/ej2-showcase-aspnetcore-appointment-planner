@@ -1,0 +1,127 @@
+@using Syncfusion.EJ2
+
+@{
+    ViewBag.Title = "Preference";
+}
+
+<div class="preference-container">
+    <header>
+        <div class="module-title">
+            <div class="title">PREFERENCE</div>
+            <div class="underline"></div>
+        </div>
+    </header>
+    <div class="control-container">
+        <div class="label-text">Default View</div>
+        <ejs-dropdownlist cssClass="preference-drop-down" id="CurrentView" width="335px" dataSource="@ViewBag.Views"
+               value="@ViewBag.SelectedView" change="onValueChange">
+            <e-dropdownlist-fields text="Text" value="Value"></e-dropdownlist-fields>
+        </ejs-dropdownlist>
+    </div>
+    <div class="control-container">
+        <div class="label-text">Calendar Start Time</div>
+        <ejs-dropdownlist cssClass="preference-drop-down" id="CalendarStart" width="335px" dataSource="@ViewBag.StartHours"
+               value="@ViewBag.SelectedStartHour" change="onValueChange">
+            <e-dropdownlist-fields text="Text" value="Value"></e-dropdownlist-fields>
+        </ejs-dropdownlist>
+    </div>
+    <div class="control-container">
+        <div class='label-text'>Calendar End Time</div>
+        <ejs-dropdownlist cssClass="preference-drop-down" id="CalendarEnd" width="335px" dataSource="@ViewBag.EndHours"
+              value="@ViewBag.SelectedEndHour" change="onValueChange">
+            <e-dropdownlist-fields text="Text" value="Value"></e-dropdownlist-fields>
+        </ejs-dropdownlist>
+    </div>
+    <div class="control-container">
+        <div class="label-text">Slot Duration</div>
+        <ejs-dropdownlist cssClass="preference-drop-down" id="Duration" width="335px" dataSource="@ViewBag.TimeSlots"
+            value="@ViewBag.TimeInterval" change="onValueChange">
+            <e-dropdownlist-fields text="Text" value="Value"></e-dropdownlist-fields>
+        </ejs-dropdownlist>
+    </div>
+    <div class="control-container">
+        <div class="label-text">Booking Color</div>
+        <ejs-dropdownlist cssClass="preference-drop-down" id="BookingColor" width="335px" dataSource="@ViewBag.ColorCategory"
+                value="@ViewBag.SelectedCategory" change="onValueChange">
+            <e-dropdownlist-fields text="Text" value="Value"></e-dropdownlist-fields>
+        </ejs-dropdownlist>
+    </div>
+    <div class="control-container">
+        <div class="label-text">First Day of the Week</div>
+        <ejs-dropdownlist cssClass="preference-drop-down" id="FirstDayOfWeek" width="335px" dataSource="@ViewBag.DayOfWeeks"
+               value="@ViewBag.SelectedDayOfWeek" change="onValueChange">
+            <e-dropdownlist-fields text="Text" value="Value"></e-dropdownlist-fields>
+        </ejs-dropdownlist>
+    </div>
+</div>
+
+<script type="text/javascript">
+    function onValueChange(args) {
+        var element = args.element.getAttribute('id')
+        var data = {
+            prop : element.toString(),
+            value: args.value.toString()
+        };
+        fetch("@Url.Action("UpdatePreference", "Home")", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+    }
+</script>
+
+<ejs-scripts></ejs-scripts>
+
+@Html.EJS().ScriptManager()
+
+<style>
+.preference-container {
+  margin: 50px 64px;
+}
+
+.preference-container .module-title {
+  margin-left: 2.5px;
+}
+
+.preference-container .control-container {
+  padding-top: 16px;
+}
+
+.preference-container .control-container .label-text {
+  margin-left: 0;
+  font-weight: 600;
+  font-size: 12px;
+  color: #666666;
+  letter-spacing: 0.33px;
+  padding-bottom: 7px;
+}
+
+.preference-container .control-container:nth-child(2) {
+  padding-top: 34px;
+}
+
+@@media (max-width: 850px) {
+  .preference-container {
+    margin: 20px 13px;
+  }
+
+  .preference-container .module-title {
+    padding-left: 12.5px !important;
+  }
+
+  .preference-container .control-container {
+    padding-top: 16px;
+  }
+
+  .preference-container .control-container .label-text {
+    padding-bottom: 7px;
+    margin-left: 0;
+  }
+
+  .preference-container .control-container:nth-child(2) {
+    padding-top: 30px;
+  }
+}
+</style>

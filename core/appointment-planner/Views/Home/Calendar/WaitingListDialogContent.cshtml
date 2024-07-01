@@ -1,0 +1,24 @@
+@using Syncfusion.EJ2
+@inject AppointmentService service
+
+@foreach (WaitingList data in ViewBag.WaitingList)
+{
+    string categoryText = service.Specializations.Where(item => item.DepartmentId == data.DepartmentId).FirstOrDefault()?.Text.ToUpper();
+    <div class="external-drag-items">
+        <div id="waiting-item-check">
+            <ejs-checkbox id="@data.Id" checked="false" change="onItemChecked"></ejs-checkbox>
+        </div>
+        <div id="waiting">
+            <div id="waitdetails">
+                <div id="waitlist">@data.Name</div>
+                <div id="event-time">@(data.StartTime.ToString("MMM d") + "," + data.StartTime.ToString("h:mm tt") + "-" + data.EndTime.ToString("h:mm tt"))</div>
+                <div id="waitcategory">
+                    @(categoryText + " - " + (!string.IsNullOrEmpty(data.Treatment) ? data.Treatment : "CHECKUP"))
+                </div>
+            </div>
+            <div id="item-icon-container">
+                <span class="item-icon icon-reorder"></span>
+            </div>
+        </div>
+    </div>
+}

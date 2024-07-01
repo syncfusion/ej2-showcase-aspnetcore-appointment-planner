@@ -1,0 +1,631 @@
+@using Syncfusion.EJ2
+
+@{
+    ViewBag.Title = "Dashboard";
+    var activitiesTemplate = "<div class='activity-container ${Type}'>" +
+    "<div class='activity-message'><span class='type-name'>${Name}</span> - <span>${Message}</span></div>" +
+    "<span class='activity-time'>${Time}</span>" +
+    "</div>";
+}
+
+<div id="dashboard" class="planner-dashboard">
+  <div class="row content view-detail-display" style="margin: 0px;">
+    <div class="col-lg-8 col-md-8 col-sm-8">
+      <div class="row">
+        <div class="col-lg-6 col-md-6 col-sm-6 text-display">
+          <div class="e-card card day-events-container">
+            <div class="e-card-content">
+              <span class="card-text label-text">Total Appointments - Today</span>
+              <div class="count-container">
+                <span class="icon-day"><img src="~/assets/Icons/Today_Widget.svg" alt="Today" /></span>
+                <span class="day-event-count">@ViewBag.CurrentDayEvents.Count</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6 col-md-6 col-sm-6 text-display">
+          <div class="e-card card week-events-container">
+            <div class="e-card-content">
+              <span class="card-text label-text">Total Appointments - This Week</span>
+              <div class="count-container">
+                <span class="icon-week"><img src="~/assets/Icons/ThisWeek_Widget.svg" alt="ThisWeek" /></span>
+                <span class="week-event-count">@ViewBag.CurrentViewEvents.Count</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 dashboard-control">
+          <div class="e-card grid-container">
+            <div class="e-card-header">
+              <div class="e-card-header-caption">
+                <div class="e-card-header-title">
+                  <span class="label-text">Today's Appointments</span>
+                  <span class="link-text"><a class="calendars" href="#/calendar">Book Appointments</a></span>
+                </div>
+              </div>
+            </div>
+            <div class="e-card-content">
+              <ejs-grid id="gridContainer" height="160px" dataSource="@ViewBag.GridData">
+                <e-grid-columns>
+                  <e-grid-column field="Time" width="80" textAlign="Left"></e-grid-column>
+                  <e-grid-column field="Name" width="120" textAlign="Left"></e-grid-column>
+                  <e-grid-column field="DoctorName" headerText="Doctor Name" width="150" textAlign="Left" template="#template"></e-grid-column>
+                  <e-grid-column field="Symptoms" width="150" textAlign="Left" clipMode="EllipsisWithTooltip"></e-grid-column>
+                </e-grid-columns>
+              </ejs-grid>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 dashboard-control">
+          <div class="e-card chart-container">
+            <div class="e-card-content">
+              <ejs-chart id="chartcontainer" height="340px" title="Consultation">
+                <e-chart-chartarea>
+                    <e-chartarea-border width="0"></e-chartarea-border>
+                </e-chart-chartarea>
+                <e-chart-primaryxaxis valuetype="DateTime" title="Date" interval="1" intervalType="Days" labelFormat="MM/dd" minimum="@ViewBag.FirstDayOfWeek" maximum="@ViewBag.FirstDayOfWeek.AddDays(6)" edgeLabelPlacement="Shift">
+                    <e-majorgridlines width="0"></e-majorgridlines>
+                    <e-minorgridlines width="0"></e-minorgridlines>
+                    <e-majorticklines width="0"></e-majorticklines>
+                </e-chart-primaryxaxis>
+                <e-chart-primaryyaxis title="Patient" minimum="0" maximum="6" interval="2"></e-chart-primaryyaxis>
+                <e-chart-titlestyle textAlignment="Near"></e-chart-titlestyle>
+                <e-chart-legendsettings visible="true" position="Top" padding="20"></e-chart-legendsettings>
+                <e-series-collection>
+                  <e-series dataSource="@ViewBag.ChartData" type="Spline" width="2" xName="Date" yName="EventCount"
+                    name="Diabetology" legendShape="Circle" fill="#60F238"></e-series>
+                  <e-series dataSource="@ViewBag.ChartData1" type="Spline" width="2" xName="Date" yName="EventCount"
+                    name="Orthopaedics" legendShape="Circle" fill="#388CF5"></e-series>
+                  <e-series dataSource="@ViewBag.ChartData2" type="Spline" width="2" xName="Date" yName="EventCount"
+                    name="Cardiology" legendShape="Circle" fill="#F29438"></e-series>
+                </e-series-collection>
+              </ejs-chart>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-4 col-sm-4 list-display" style="padding-right: 0px;">
+      <div class="recent-activity">
+        <h3>Recent Activities</h3>
+        <ejs-listview id="recentActivities" height="88%" width="100%" dataSource="@ViewBag.Activities" cssClass="e-list-template activity-template" showHeader="false" template="@activitiesTemplate"></ejs-listview>
+      </div>
+      <div class="doctor-availability">
+        <div class="availability-title">
+          <span class="header-text">Doctor's Availability</span>
+          <span class="all-text"><a class="doctors" href="#/doctors">View All</a></span>
+        </div>
+        <ejs-listview id="doctorsAvailability" height="88%" width="100%" dataSource="@ViewBag.AvailableDoctors" cssClass="e-list-template" showHeader="false" template="#availabilityTemplate"></ejs-listview>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="template" type="text/template">
+    <a href="#/doctor-details/${DoctorId}">${DoctorName}</a>
+</script>
+
+<script id="availabilityTemplate" type="text/template">
+    <div class="availabilty-container">
+      <div class='image-container'>
+        <span class='doctor-image'>
+          <img src="@Url.Content("~/assets/images/${Text}.png")" />
+          <span class='availability ${Availability}'></span>
+        </span>
+      </div>
+      <div class="detail-container">
+        <span class="doctor-name">Dr.${Name}</span>
+        <span class="doctor-speciality">${getSpecializationText(data)}</span>
+      </div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    window.getSpecializationText = function(data) {
+        var specializationData = @Html.Raw(Json.Serialize(ViewBag.SpecializationsData));
+        return specializationData.filter(item => item.Id === data.Specialization)[0].Text.toUpperCase();
+    }
+</script>
+
+<ejs-scripts></ejs-scripts>
+
+@Html.EJS().ScriptManager()
+
+<style>
+.e-float-input textarea~.e-float-text,
+.e-float-input.e-control-wrapper textarea~.e-float-text {
+  top: 16px;
+}
+
+.e-popup-open .e-list-item {
+  padding: 4px 20px 4px 0px;
+}
+
+.planner-dashboard {
+  display: flex;
+  margin: 50px 75px;
+  font-size: 14px;
+  letter-spacing: 0.38px;
+  height: 100%;
+}
+
+.planner-dashboard .view-detail-display {
+  width: 100%;
+}
+
+.planner-dashboard .view-detail-display .grid-container {
+  height: 270px;
+}
+
+.planner-dashboard .view-detail-display .grid-container .e-card-header {
+  height: 60px;
+}
+
+.planner-dashboard .view-detail-display .grid-container .e-card-header .e-card-header-caption .e-card-header-title {
+  display: flex;
+  padding: 0px;
+  font-weight: 600;
+}
+
+.planner-dashboard .view-detail-display .grid-container .e-card-header .e-card-header-caption .label-text {
+  flex: auto;
+  letter-spacing: 0.48px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0.5rem 0;
+}
+
+.planner-dashboard .view-detail-display .grid-container .link-text {
+  flex: initial;
+  font-size: 13px;
+  color: #5851e1;
+  letter-spacing: 0.39px;
+  text-align: right;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  padding: 0.5rem 0;
+}
+
+.planner-dashboard .view-detail-display .grid-container .link-text a {
+  cursor: pointer;
+  text-decoration: underline;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.planner-dashboard .view-detail-display .e-card .count-container {
+  display: flex;
+  margin: 0 16px 6.3px 17.4px;
+}
+
+.planner-dashboard .view-detail-display .chart-container {
+  width: 100%;
+  height: 340px;
+}
+
+.planner-dashboard .view-detail-display .chart-container text#chartcontainer_ChartTitle {
+  fill: #333;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333 !important;
+  letter-spacing: 0.48px;
+  padding: 10px 16px;
+}
+
+.planner-dashboard .e-card {
+  border: 0px;
+}
+
+.planner-dashboard .e-card .e-card-content {
+  padding: 0px;
+  line-height: 30px;
+}
+
+.planner-dashboard .text-display {
+  text-align: center;
+  line-height: 30px;
+}
+
+.planner-dashboard header {
+  display: none;
+}
+
+.planner-dashboard .list-display {
+  padding-left: 20px;
+}
+
+.planner-dashboard .list-display .recent-activity,
+.planner-dashboard .list-display .doctor-availability {
+  background-clip: padding-box;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #FFFFFF;
+  box-shadow: 1px 2px 20px 0 rgba(173, 173, 255, 0.2);
+  height: 415px;
+}
+
+.planner-dashboard .list-display .recent-activity h3,
+.planner-dashboard .list-display .doctor-availability h3 {
+  border-bottom: 0;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333 !important;
+  letter-spacing: 0.48px;
+  padding: 10px 16px;
+}
+
+.planner-dashboard .list-display .recent-activity .e-list-template,
+.planner-dashboard .list-display .doctor-availability .e-list-template {
+  overflow: auto;
+}
+
+.planner-dashboard .list-display .doctor-availability .e-list-template .e-content {
+  padding-top: 7px;
+}
+
+.planner-dashboard .list-display .doctor-availability .availability-title {
+  display: flex;
+}
+
+.planner-dashboard .list-display .doctor-availability .availability-title .header-text {
+  float: left;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 16px;
+  flex: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planner-dashboard .list-display .doctor-availability .availability-title .all-text {
+  font-size: 13px;
+  padding: 10px 16px;
+  float: right;
+  flex: initial;
+  font-weight: 400;
+  color: #5851e1;
+  letter-spacing: 0.39px;
+  text-align: right;
+  margin-right: 4px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.planner-dashboard .list-display .recent-activity {
+  height: 375px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.planner-dashboard .view-detail-display .e-card.day-events-container .label-text,
+.planner-dashboard .view-detail-display .e-card.week-events-container .label-text {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  letter-spacing: 0.48px;
+  display: flex;
+  padding: 10px 12px 6.5px 12px;
+}
+
+.planner-dashboard .view-detail-display .e-card.day-events-container,
+.planner-dashboard .view-detail-display .e-card.week-events-container {
+  background: #fff;
+  box-shadow: 1px 2px 20px 0 rgba(173, 173, 255, 0.2);
+}
+
+.planner-dashboard .view-detail-display .e-card .week-event-count,
+.planner-dashboard .view-detail-display .e-card .day-event-count {
+  font-weight: 400;
+  font-size: 36px;
+  cursor: default;
+  color: #5851e1;
+  letter-spacing: 1.08px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  flex-basis: 50%;
+}
+
+.planner-dashboard .view-detail-display .e-card .icon-week img,
+.planner-dashboard .view-detail-display .e-card .icon-day img {
+  width: 57px;
+  height: 56.2px;
+}
+
+.planner-dashboard .view-detail-display .chart-container,
+.planner-dashboard .view-detail-display .grid-container {
+  margin-top: 30px;
+  box-shadow: 1px 2px 20px 0 rgba(173, 173, 255, 0.2);
+}
+
+.planner-dashboard .list-display .recent-activity,
+.planner-dashboard .list-display .doctor-availability {
+  background-clip: padding-box;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 1px 2px 20px 0 rgba(173, 173, 255, 0.2);
+  height: 375px;
+}
+
+.e-tooltip-wrap {
+  border-radius: 15px 15px 15px 0;
+  opacity: 0.8;
+  background: #333;
+}
+
+.e-tooltip-wrap .e-tip-content {
+  border-radius: 15px 15px 15px 0;
+  font-size: 13px;
+  color: #fff;
+  letter-spacing: 0.39px;
+  padding: 5px 8px;
+}
+
+.view-detail-display .col-lg-8,
+.view-detail-display .col-md-8,
+.view-detail-display .col-sm-8 {
+  padding-right: 20px;
+  padding-left: 0px;
+}
+
+.view-detail-display a {
+  text-decoration: underline;
+  color: -webkit-link;
+}
+
+@@media (max-width: 850px) {
+  .planner-dashboard {
+    display: block;
+    margin: 20px 10px;
+  }
+
+  .planner-dashboard header {
+    margin-bottom: 28px;
+    margin-left: 10px;
+    display: block;
+  }
+
+  .planner-dashboard .view-detail-display,
+  .planner-dashboard .list-display {
+    width: 100%;
+  }
+
+  .planner-dashboard .view-detail-display .grid-container,
+  .planner-dashboard .view-detail-display .chart-container {
+    margin-top: 1em;
+  }
+
+  .planner-dashboard .view-detail-display .chart-container {
+    width: 100%;
+  }
+
+  .planner-dashboard .view-detail-display .text-display {
+    display: block;
+    width: 100%;
+  }
+
+  .planner-dashboard .view-detail-display .text-display .day-events-container,
+  .planner-dashboard .view-detail-display .text-display .week-events-container {
+    width: 100%;
+    margin: 0;
+  }
+
+  .planner-dashboard .view-detail-display .text-display .day-events-container .label-text,
+  .planner-dashboard .view-detail-display .text-display .week-events-container .label-text {
+    padding: 15px;
+  }
+
+  .planner-dashboard .view-detail-display .text-display .day-events-container .count-container,
+  .planner-dashboard .view-detail-display .text-display .week-events-container .count-container {
+    padding: 0 16px 7.3px 17.4px;
+  }
+
+  .planner-dashboard .view-detail-display .text-display .day-events-container .count-container .day-event-count,
+  .planner-dashboard .view-detail-display .text-display .week-events-container .count-container .day-event-count,
+  .planner-dashboard .view-detail-display .text-display .day-events-container .count-container .week-event-count,
+  .planner-dashboard .view-detail-display .text-display .week-events-container .count-container .week-event-count {
+    padding-left: 60.1px;
+  }
+
+  .planner-dashboard .list-display {
+    padding: 0;
+  }
+
+  .planner-dashboard .list-display .recent-activity,
+  .planner-dashboard .list-display .doctor-availability {
+    margin: 0;
+    width: 100%;
+  }
+
+  .planner-dashboard .list-display .doctor-availability {
+    margin-top: 1em;
+  }
+}
+
+.activity-template .e-list-header {
+  border-bottom: 0;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333 !important;
+  letter-spacing: 0.48px;
+  padding: 10px 16px;
+}
+
+.activity-template .e-list-item {
+  border: none;
+  height: 100%;
+  padding: 0px 16px;
+  margin-bottom: 10.2px;
+  line-height: 18px;
+}
+
+.activity-template .e-list-item .activity-container {
+  padding: 5px 0;
+}
+
+.activity-template .e-list-item .activity-container.doctor {
+  border-left: 2px solid #e16651;
+}
+
+.activity-template .e-list-item .activity-container.appointment {
+  border-left: 2px solid #5851e1;
+}
+
+.activity-template .e-list-item .activity-container.patient {
+  border-left: 2px solid #51e1b7;
+}
+
+.activity-template .e-list-item .activity-container .activity-message {
+  font-weight: 400;
+  font-size: 13px;
+  color: #333;
+  letter-spacing: 0.39px;
+  line-height: 18px;
+  height: auto;
+  margin-left: 12px;
+  padding-bottom: 5px;
+}
+
+.activity-template .e-list-item .activity-container .activity-message .type-name {
+  font-weight: bold;
+}
+
+.activity-template .e-list-item .activity-container .activity-time {
+  font-size: 13px;
+  color: #999;
+  letter-spacing: 0.39px;
+  line-height: 18px;
+  width: 254px;
+  height: 20.1px;
+  margin-left: 12px;
+}
+
+.e-list-template .e-list-header {
+  border-bottom: 0;
+  flex: auto;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333 !important;
+  letter-spacing: 0.48px;
+  padding: 10px 16px;
+}
+
+.e-list-template .e-list-header .e-headertemplate-text {
+  width: 100%;
+}
+
+.e-list-template .e-list-header .e-headertemplate-text .availability-title {
+  display: flex;
+}
+
+.e-list-template .e-list-header .e-headertemplate-text .availability-title .header-text {
+  flex: auto;
+}
+
+.e-list-template .e-list-header .e-headertemplate-text .availability-title .all-text {
+  flex: initial;
+  font-weight: 400;
+  font-size: 13px;
+  color: #5851e1;
+  letter-spacing: 0.39px;
+  text-align: right;
+  margin-right: 4px;
+}
+
+.e-list-template .e-list-container {
+  padding-top: 17.5px;
+}
+
+.e-list-template li.e-list-item {
+  border: none;
+  display: flex;
+  padding: 5px 16px;
+}
+
+.e-list-template li.e-list-item .availabilty-container {
+  display: flex;
+}
+
+.e-list-template li.e-list-item .availabilty-container .image-container {
+  display: flex;
+  padding-left: 1px;
+}
+
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image {
+  padding: 5px 0;
+  position: relative;
+}
+
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image img {
+  height: 32px;
+  width: 32px;
+  border-radius: 16px;
+}
+
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image .availability.busy,
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image .availability.available,
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image .availability.away {
+  display: inline-block;
+  border: 2px solid #fff;
+  border-radius: 16px;
+  height: 14px;
+  width: 14px;
+  position: absolute;
+  top: 47%;
+  left: 65%;
+}
+
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image .availability.busy {
+  background: #d40000;
+}
+
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image .availability.away {
+  background: #ff8c2e;
+}
+
+.e-list-template li.e-list-item .availabilty-container .image-container .doctor-image .availability.available {
+  background: #00d406;
+}
+
+.e-list-template li.e-list-item .availabilty-container .detail-container {
+  display: grid;
+  padding-left: 16px;
+}
+
+.e-list-template li.e-list-item .availabilty-container .detail-container .doctor-name {
+  font-weight: 500;
+  font-size: 13px;
+  color: #666;
+  letter-spacing: 0.39px;
+  padding: 3px 0;
+}
+
+.e-list-template li.e-list-item .availabilty-container .detail-container .doctor-speciality {
+  font-size: 10px;
+  color: #666;
+  letter-spacing: 0.3px;
+  padding: 2px 0;
+}
+
+div[id^=listview].e-tooltip-wrap {
+  border-radius: 15px 15px 15px 0;
+  opacity: 0.8;
+  background: #000;
+}
+
+div[id^=listview].e-tooltip-wrap .e-tip-content {
+  border-radius: 15px 15px 15px 0;
+  font-size: 13px;
+  color: #fff;
+  letter-spacing: 0.39px;
+  padding: 5px 8px;
+}
+</style>

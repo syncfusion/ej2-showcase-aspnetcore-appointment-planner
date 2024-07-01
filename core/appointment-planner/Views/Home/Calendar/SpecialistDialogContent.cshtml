@@ -1,0 +1,12 @@
+@foreach (Doctor specialist in ViewBag.ResourceDataSource)
+{
+    <div>
+        <div class="specialist-item" data-deptid="@specialist.DepartmentId" data-doctorid="@specialist.Id">
+            <img class="value" src="~/assets/images/@(specialist.Text).png" alt="doctor" />
+            <div class="doctor-details">
+                <div class="name">Dr.@specialist.Name</div>
+                <div class="designation">@specialist.Designation</div>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,412 @@
+@using Syncfusion.EJ2
+
+@{
+    ViewBag.Title = "Patients";
+    var template = "<span class='patient-name'>${Name}</span>";
+    var editSettingsTemplate = "<div class='grid-edit-dialog'>" +
+                        "<div class='field-row'>" +
+                            "<label> Patient Id </label><span id='Id'>${Id}</span>" +
+                        "</div>" +
+                        "<div class='field-row'>" +
+                            "<label> Patient Name </label><span id='Name'>${Name}</span>" +
+                        "</div>" +
+                        "<div class='field-row'>" +
+                            "<label> Gender </label><span id='Gender'>${Gender}</span>" +
+                        "</div>" +
+                        "<div class='field-row'>" +
+                            "<label> DOB </label><span id='DOB'>${DOB}</span>" +
+                        "</div>" +
+                        "<div class='field-row'>" +
+                            "<label> Blood Group </label><span id='BloodGroup'>${BloodGroup}</span>" +
+                        "</div>" +
+                        "<div class='field-row'>" +
+                            "<label> Mobile Number </label><span id='Mobile'>${Mobile}</span>" +
+                        "</div>" +
+                        "<div class='field-row'>" + 
+                            "<label> Email </label><span id='Email'>${Email}</span>" +
+                        "</div>" +
+                        "<div class='field-row'>" +
+                            "<label> Symptoms </label><span id='Symptoms'>${Symptoms}</span>" +
+                        "</div>" +
+                        "<div class='field-row history-row'>" +
+                            "<label>Appointment History</label>" +
+                        "</div>" +
+                    "</div>";
+}
+
+<div id="patient-wrapper" class="planner-patient-wrapper">
+    <header>
+        <div class="module-title">
+            <div class="title">PATIENT LIST</div>
+            <div class="underline"></div>
+        </div>
+        <div class="add-patient">
+            <div class="e-icon-add e-icons"></div>
+            <div class="add-patient-label">Add New</div>
+        </div>
+    </header>
+    <div class="patients-detail-wrapper">
+        <div class="patient-operations">
+            <div id="searchTemplate" class="search-wrapper planner-patient-search">
+                <div class="e-input-group" role="search">
+                    <input id="schedule_searchbar" class="e-input" name="input" type="search" placeholder="Search Patient" />
+                    <span class="e-clear-icon" aria-label="close" role="button"></span>
+                    <span id="schedule_searchbutton" class="e-input-group-icon search-icon e-icons" tabindex="-1" title="Search" aria-label="search"></span>
+                </div>
+            </div>
+            <ejs-button id="addpatient" cssClass="e-normal add-details" isPrimary="true" content="New Patient"></ejs-button>
+        </div>
+        <div class="patient-display">
+            <ejs-grid id="patientsGrid" dataSource="@ViewBag.FilteredPatients" actionComplete="onDataEdit" rowDataBound="gridRowDataBound">
+                <e-grid-editsettings allowEditing="true" allowAdding="true" allowDeleting="true" mode="Dialog" template="@editSettingsTemplate"></e-grid-editsettings>
+                <e-grid-columns>
+                    <e-grid-column field="Id" width="50" headerText="ID" textAlign="Left"></e-grid-column>
+                    <e-grid-column field="Name" width="100" textAlign="Left" template="@template"></e-grid-column>
+                    <e-grid-column field="Gender" width="80" textAlign="Left"></e-grid-column>
+                    <e-grid-column field="BloodGroup" headerText="Blood Group" width="100" textAlign="Left"></e-grid-column>
+                    <e-grid-column field="Symptoms" width="150" textAlign="Left" clipMode="EllipsisWithTooltip"></e-grid-column>
+                    <e-grid-column field="Mobile" headerText="Mobile Number" width="100" textAlign="Left"></e-grid-column>
+                    <e-grid-column field="Email" headerText="Email" width="120" textAlign="Left"></e-grid-column>
+                </e-grid-columns>
+            </ejs-grid>
+        </div>
+    </div>
+</div>
+<partial name="/Views/Home/Patient/PatientDialog.cshtml" />
+<div class="delete-confirmation-container" style="display:none">
+    <ejs-dialog id="deleteConfirmationDialog" width="445px" cssClass="break-hour-dialog" isModal="true" beforeOpen="dialogOpen" visible="false" header="Patient Details" showCloseIcon="true" target="body" footerTemplate="<div class='button-container'>
+        <button id='delete_confirm'>Ok</button><button id='cancel'>Cancel</button>">
+        <e-dialog-animationsettings effect="None"></e-dialog-animationsettings>
+        <e-content-template>
+            <form>
+                <div>
+                    Are you sure you want to delete this patient?
+                </div>
+            </form>
+        </e-content-template>
+    </ejs-dialog>
+</div>
+
+<script type="text/javascript">
+    function getColor(data) {
+        return 'background-color:' + data.color + ';';
+    }
+    document.querySelector('.add-patient').onclick = onAddPatient;
+    document.querySelector('#schedule_searchbar').onkeyup = patientSearch;
+    document.querySelector('.e-input-group .e-clear-icon').onclick = patientSearchCleared;
+    document.querySelector('#addpatient').onclick = onAddPatient;
+    var activePatientData;
+    function patientSearch(args) {
+        var gridObj = document.querySelector('#patientsGrid').ej2_instances[0];
+        gridObj.searchSettings.fields = ['Id', 'Name', 'Gender', 'BloodGroup', 'Mobile'];
+        gridObj.searchSettings.key = args.target.value;
+    }
+    function patientSearchCleared(args) {
+        var gridObj = document.querySelector('#patientsGrid').ej2_instances[0];
+        gridObj.searchSettings.key = '';
+        if (args.target.previousElementSibling) {
+            args.target.previousElementSibling.value = '';
+        }
+    }
+    function gridRowDataBound(args) {
+        if (args.row) {
+            args.row.querySelector('.patient-name').onclick = onPatientClick;
+        }
+    }
+
+    function onPatientClick(args) {
+        var rowIndex = args.currentTarget.parentElement.getAttribute('index');
+        setTimeout(() => {
+            var gridObj = document.querySelector('#patientsGrid').ej2_instances[0];
+            gridObj.selectRow(parseInt(rowIndex, 10));
+            gridObj.startEdit();
+        });
+    }
+    function dialogOpen(args) {
+        var deleteBtn = args.element.querySelector('#delete_confirm');
+        var cancelBtn = args.element.querySelector('#cancel');
+        if (deleteBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal',
+                isPrimary: true
+            });
+            btnObj.appendTo(deleteBtn);
+            deleteBtn.onclick = function (e) { onDeleteClick(); };
+        }
+        if (cancelBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal'
+            });
+            btnObj.appendTo(cancelBtn);
+            cancelBtn.onclick = function (e) { onDeleteCancelClick(); };
+        }
+    }
+    function onDataEdit(args) {
+        var intl = new ej.base.Internationalization();
+        if (args.requestType === 'beginEdit') {
+            activePatientData = args.rowData;
+            var gridDialog = args.dialog;
+            gridDialog.header = 'Patient Details';
+            var fields = ['Id', 'Name', 'Gender', 'DOB', 'BloodGroup', 'Mobile', 'Email', 'Symptoms'];
+            fields.forEach(field => {
+                var value;
+                if (field === 'DOB' && !ej.base.isNullOrUndefined(activePatientData[field])) {
+                    value = intl.formatDate(activePatientData[field], { skeleton: 'yMd' }).toString();
+                } else {
+                    value = ej.base.isNullOrUndefined(activePatientData[field]) ? '' : activePatientData[field].toString();
+                }
+                args.dialog.element.querySelector('#' + field).innerHTML = value;
+            });
+            gridDialog.element.querySelector('.history-row').appendChild(getHistoryDetails(activePatientData));
+            var editButtonElement = ej.base.createElement('button', {
+                className: 'edit-patient',
+                id: 'edit',
+                innerHTML: 'Edit',
+                attrs: { type: 'button', title: 'Edit' }
+            });
+            editButtonElement.onclick = function (e) { onEditPatient(args); };
+            var deleteButtonElement = ej.base.createElement('button', {
+                className: 'delete-patient',
+                id: 'delete',
+                innerHTML: 'Delete',
+                attrs: { type: 'button', title: 'Delete', content: 'DELETE' }
+            });
+            deleteButtonElement.onclick = onDeletePatient;
+            gridDialog.element.querySelector('.e-footer-content').appendChild(deleteButtonElement);
+            gridDialog.element.querySelector('.e-footer-content').appendChild(editButtonElement);
+            var editButton = new ej.buttons.Button({ isPrimary: true });
+            editButton.appendTo('#edit');
+            var deleteButton = new ej.buttons.Button();
+            deleteButton.appendTo('#delete');
+        }
+    }
+    function getHistoryDetails(activePatientData) {
+        var intl = new ej.base.Internationalization();
+        var hospitalData = @Html.Raw(Json.Serialize(ViewBag.HospitalData));
+        var filteredData = hospitalData.filter(item => item.PatientId === activePatientData.Id);
+        var historyElement = ej.base.createElement('div', { id: 'history-wrapper' });
+        if (filteredData.length > 0) {
+            var doctorsData = @Html.Raw(Json.Serialize(ViewBag.Doctors));
+            filteredData.map(item => {
+                var element = ej.base.createElement('div', { className: 'history-content' });
+                element.textContent = intl.formatDate(new Date(item.StartTime), { skeleton: 'MMMd' }).toString() + ' - ' + intl.formatDate(new Date(item.StartTime), { skeleton: 'hm' }).toString() + ' - ' + intl.formatDate(new Date(item.EndTime), { skeleton: 'hm' }).toString() + ' Appointment with Dr.' + getDoctorName(doctorsData, item.DoctorId);
+                historyElement.appendChild(element);
+            });
+        } else {
+            var element = ej.base.createElement('div', { className: 'empty-container' });
+            element.textContent = 'No Events!';
+            historyElement.appendChild(element);
+        }
+        return historyElement;
+    }
+    function getDoctorName(doctorsData, doctorId) {
+        var activeDoctor = doctorsData.filter((item) => item.Id === doctorId);
+        return activeDoctor[0].Name;
+    }
+    function onEditPatient(e) {
+        var gridObj = document.querySelector('#patientsGrid').ej2_instances[0];
+        gridObj.closeEdit();
+        showPatientDetails(e.rowData);
+    }
+    function onDeletePatient() {
+        var deleteConfirmationDialogObj = document.querySelector('#deleteConfirmationDialog');
+        if (deleteConfirmationDialogObj) {
+            deleteConfirmationDialogObj.ej2_instances[0].show();
+        }
+    }
+    function onDeleteClick() {
+        gridObj = document.querySelector('#patientsGrid').ej2_instances[0];
+        gridObj.closeEdit();
+        gridObj.deleteRecord(activePatientData);
+        onDeleteCancelClick();
+        var data = {
+            prop: 'Id',
+            value: activePatientData.Id.toString()
+        };
+        fetch("@Url.Action("UpdatePatients", "Home")", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+    }
+    function onDeleteCancelClick() {
+        var deleteConfirmationDialogObj = document.querySelector('#deleteConfirmationDialog');
+        if (deleteConfirmationDialogObj) {
+            deleteConfirmationDialogObj.ej2_instances[0].hide();
+        }
+    }
+</script>
+
+<ejs-scripts></ejs-scripts>
+
+@Html.EJS().ScriptManager()
+
+<style>
+.planner-patient-wrapper {
+  margin: 50px;
+}
+
+.planner-patient-wrapper header {
+  display: flex;
+}
+
+.planner-patient-wrapper header .module-title {
+  margin-left: 16.5px;
+}
+
+.planner-patient-wrapper header .add-patient {
+  flex: initial;
+  display: none;
+}
+
+.planner-patient-wrapper header .add-patient .e-icon-add {
+  padding: 9px 0 10px 20px;
+  font-size: 10px;
+  color: #7575FF;
+}
+
+.planner-patient-wrapper header .add-patient .e-icon-add::before {
+  content: '\e95c';
+}
+
+.planner-patient-wrapper header .add-patient .add-patient-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #7575FF;
+  letter-spacing: 0.39px;
+  padding: 7px;
+}
+
+.planner-patient-wrapper .patients-detail-wrapper .patient-operations {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.planner-patient-wrapper .patients-detail-wrapper .patient-operations .planner-patient-search.search-wrapper {
+  width: 190px;
+  margin-right: 16px;
+}
+
+.planner-patient-wrapper .patients-detail-wrapper .patient-operations .planner-patient-search.search-wrapper .e-input-group span.search-icon {
+  cursor: default;
+}
+
+.planner-patient-wrapper .patients-detail-wrapper .patient-operations .planner-patient-search.search-wrapper .e-input-group span.search-icon::before {
+  content: '\e993';
+}
+
+.planner-patient-wrapper .patients-detail-wrapper .patient-display {
+  margin-top: 17px;
+}
+
+.planner-patient-wrapper .patients-detail-wrapper .patient-display .e-grid .e-gridcontent tr.e-row td.e-rowcell .patient-name {
+  color: #7575FF;
+  cursor: pointer;
+}
+
+.e-dialog.e-edit-dialog {
+  max-height: 495px !important;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog {
+  width: 325px;
+  height: 360px;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row {
+  display: flex;
+  padding: 5px 0;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row label {
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  padding: 5px 0;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row label,
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row span {
+  flex: 1;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row span {
+  font-size: 14px;
+  color: #333333;
+  letter-spacing: 0.39px;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row.history-row {
+  flex-direction: column;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row.history-row label {
+  color: #7575FF !important;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row.history-row .history-content {
+  padding: 5px;
+  font-size: 13px;
+  color: #333333;
+  letter-spacing: 0.39px;
+  line-height: 18px;
+  margin: 10px 0;
+  border-left: 2px solid blue;
+}
+
+.e-dialog.e-edit-dialog .e-dlg-content .grid-edit-dialog .field-row.history-row .empty-container {
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  padding: 5px 10px;
+}
+
+.e-dialog.e-edit-dialog .e-footer-content :nth-child(1),
+.e-dialog.e-edit-dialog .e-footer-content :nth-child(2) {
+  display: none;
+}
+
+@@media (max-width: 850px) {
+  .planner-patient-wrapper {
+    margin: 20px 10px;
+  }
+
+  .planner-patient-wrapper header .module-title {
+    margin-left: 10px;
+    flex: 1;
+  }
+
+  .planner-patient-wrapper header .add-patient {
+    margin-right: 6px;
+    display: flex;
+    cursor: pointer;
+  }
+
+  .planner-patient-wrapper header .add-patient .add-patient-label {
+    font-weight: 500;
+  }
+
+  .planner-patient-wrapper .patients-detail-wrapper {
+    margin: 0;
+  }
+
+  .planner-patient-wrapper .patients-detail-wrapper .patient-operations {
+    margin-top: 3.3%;
+  }
+
+  .planner-patient-wrapper .patients-detail-wrapper .patient-operations .e-btn {
+    display: none;
+  }
+
+  .planner-patient-wrapper .patients-detail-wrapper .patient-operations .planner-patient-search.search-wrapper {
+    flex: 1;
+    margin: 0;
+  }
+
+  .planner-patient-wrapper .patients-detail-wrapper .patient-display {
+    margin-top: 3.3%;
+  }
+}
+</style>

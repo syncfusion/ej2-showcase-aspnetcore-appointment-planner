@@ -1,0 +1,1498 @@
+﻿@using Syncfusion.EJ2
+@inject AppointmentService service
+
+@{
+    ViewBag.Title = "Calendar";
+    string[] resources = new string[] { "Departments", "Doctors" };
+    Dictionary<string, object> dateValidationRules = new Dictionary<string, object>() { { "required", true } };
+    Dictionary<string, object> descriptionValidationRules = new Dictionary<string, object>() { { "required", new string[] { "true", "Please enter disease Symptoms" } }, { "minLength", new string[] { "5", "Need atleast 5 letters to be entered" } } };
+    var footerTemplate = "<div class='add-doctor'><div class='e-icon-add e-icons'></div>" +
+    "<div class='add-doctor-text'>Add New Doctor</div></div>";
+}
+
+<div class="planner-calendar">
+  <div class="doctor-container" style="display:none">
+    <div class="app-doctors"></div>
+    <div class="app-doctor-icon"></div>
+  </div>
+  <div class="drag-sample-wrapper droppable">
+    <div class="schedule-container">
+      <ejs-schedule id="schedule" height="800px" cssClass="doctor-appointment-planner" showWeekend="false"
+        startHour="@ViewBag.StartHour" endHour="@ViewBag.EndHour" selectedDate="@ViewBag.SelectedDate" workDays="@ViewBag.WorkDays"
+        firstDayOfWeek="@ViewBag.FirstDayOfWeek" currentView="@ViewBag.CurrentView" actionBegin="onActionBegin" actionComplete="onActionComplete"
+        popupOpen="onPopupOpen" eventRendered="onEventRendered" navigating="onNavigation" dataBound="onDataBound" dateHeaderTemplate="#dateHeaderTemplate" created="scheduleCreated">
+        <e-schedule-timescale enable="true" interval="@ViewBag.Interval"></e-schedule-timescale>
+        <e-schedule-workhours start="08:00" end="21:00"></e-schedule-workhours>
+        <e-schedule-eventsettings dataSource="@ViewBag.EventData" resourceColorField="@ViewBag.BookingColor">
+            <e-eventsettings-fields>
+                <e-field-subject name="Name"></e-field-subject>
+                <e-field-starttime title="From" validation="@dateValidationRules"></e-field-starttime>
+                <e-field-endtime title="To" validation="@dateValidationRules"></e-field-endtime>
+                <e-field-description name="Symptoms" title="Symptom" validation="@descriptionValidationRules"></e-field-description>
+            </e-eventsettings-fields>
+        </e-schedule-eventsettings>
+        <e-schedule-resources>
+          <e-schedule-resource field="DepartmentId" title="Department" name="Departments"
+            dataSource="@ViewBag.SpecialistCategory" textField="Text" idField="DepartmentId" colorField="Color">
+          </e-schedule-resource>
+          <e-schedule-resource field="DoctorId" title="Consultation" name="Doctors" dataSource="@ViewBag.ResourceDataSource"
+                                         textField="Name" idField="Id" groupIDField="DepartmentId" colorField="Color" workDaysField="AvailableDays" StartHourField="StartHour" EndHourField="EndHour">
+          </e-schedule-resource>
+        </e-schedule-resources>
+        <e-schedule-views>
+          <e-schedule-view option="Day"></e-schedule-view>
+          <e-schedule-view option="Week"></e-schedule-view>
+          <e-schedule-view option="Month"></e-schedule-view>
+          <e-schedule-view option="TimelineDay">
+            <e-schedule-view-group enableCompactView="false" resources="@resources"></e-schedule-view-group>
+          </e-schedule-view>
+          <e-schedule-view option="TimelineWeek">
+            <e-schedule-view-group enableCompactView="false" resources="@resources"></e-schedule-view-group>
+          </e-schedule-view>
+          <e-schedule-view option="TimelineWorkWeek">
+            <e-schedule-view-group enableCompactView="false" resources="@resources"></e-schedule-view-group>
+          </e-schedule-view>
+          <e-schedule-view option="TimelineMonth">
+            <e-schedule-view-group enableCompactView="false" resources="@resources"></e-schedule-view-group>
+          </e-schedule-view>
+        </e-schedule-views>
+        <e-schedule-quickinfotemplates header="#quickInfoTemplatesHeader" content="#quickInfoTemplatesContent"></e-schedule-quickinfotemplates>
+      </ejs-schedule>
+    </div>
+    <div class="treeview-container">
+      <div class="choose-Specialist-container">
+        <ejs-dropdownlist id="specialist" cssClass="e-specialist-doctors" dataSource="@ViewBag.ResourceDataSource"
+          placeholder="Choose Specialist" popupHeight="auto" popupWidth="221px" showClearButton="true"
+          change="onDoctorSelect" open="onMultiSelectOpen" footerTemplate="@footerTemplate"
+          itemTemplate="@Html.Raw("<div class='specialist-item'><img class='value' src='./assets/images/${Text}.png' alt='doctor'/><div class='doctor-details'><div class='name'>Dr.${Name}</div><div class='designation'>${Designation}</div></div></div>")">
+          <e-dropdownlist-fields text="Name" value="Id"></e-dropdownlist-fields>
+        </ejs-dropdownlist>
+      </div>
+      <div class="title-container">
+        <h2 class="title-text">Waiting List</h2>
+      </div>
+      <ejs-treeview id="waitingList" cssClass="treeview-external-drag" allowDragAndDrop="true"
+        nodeDragStop="onTreeDragStop" nodeDragging="onItemDrag" nodeTemplate="#treeNodeTemplate">
+        <e-treeview-fields dataSource="@ViewBag.WaitingList" id="Id" text="Name"></e-treeview-fields>
+      </ejs-treeview>
+      <ejs-toast id="calendarToast" width="580px" height="70px" showCloseButton="true" created="onToastCreated">
+        <e-toast-position X="Right" Y="Bottom"></e-toast-position>
+      </ejs-toast>
+    </div>
+  </div>
+</div>
+<div class="specialist-dialog" style="display:none">
+    <ejs-dialog id="specialistObj" height="500px" isModal="true" visible="false" cssClass="specialist-selection" header="<div class='specialist-header'><div><span class='back-icon icon-previous'></span><span class='title-text'>CHOOSE SPECIALIST</span></div><div><button id='clearBtn'>CLEAR</button></div></div>"
+        footerTemplate="<div class='add-doctor'><div class='e-icon-add e-icons'></div><div class='add-doctor-text'>Add New Doctor</div></div>" beforeOpen="specialistDialogOpen" created="specialistDialogCreated"
+        showCloseIcon="false" target="body" width="100%">
+    <e-dialog-animationsettings effect="None"></e-dialog-animationsettings>
+    <e-content-template>
+        <partial name="/Views/Home/Calendar/SpecialistDialogContent.cshtml" />
+    </e-content-template>
+  </ejs-dialog>
+</div>
+<div class="waiting-list-container" style="display:none">
+    <ejs-dialog id="waitingObj" height="80%" cssClass="waiting-list-dialog" isModal="true" visible="false" header="<div class='waitlist-header'><div class='text-container'><span class='back-icon icon-previous'></span><span class='title-text'>Waiting List</span></div><div class='button-container'><span class='delete-button'><button id='deleteBtn'>Delete</button></span><span class='add-button'><button id='addBtn'>Add</button></span></div></div>" beforeOpen="waitingListDialogOpen"
+    showCloseIcon="false" target="body" width="100%" close="onWaitingListClosed" created="waitinglistDialogCreated">
+    <e-dialog-animationsettings effect="None"></e-dialog-animationsettings>
+    <e-content-template>
+        <partial name="/Views/Home/Calendar/WaitingListDialogContent.cshtml" />
+    </e-content-template>
+  </ejs-dialog>
+</div>
+<partial name="/Views/Home/Doctor/DoctorDialog.cshtml" />
+<partial name="/Views/Home/Patient/PatientDialog.cshtml" />
+
+
+<script id="treeNodeTemplate" type="text/template">
+    <div id="waiting">
+        <div id="waitdetails">
+            <div id="waitlist">${Name}</div>
+            <div id="event-time">${getEventTime(StartTime, EndTime)}</div>
+            <div id="waitcategory">${getDepartmentName(DepartmentId, Treatment)}}</div>
+        </div>
+        <div id="item-icon-container">
+            <span class="item-icon icon-reorder"></span>
+        </div>
+    </div>
+</script>
+
+<script id="dateHeaderTemplate" type="text/template">
+    <div class="date-text">${getDateHeaderText(data.date)}</div>
+</script>
+
+<script id="quickInfoTemplatesHeader" type="text/template">
+    <div>
+        ${if (elementType === 'event')}
+        <div class="quick-info-header">
+           <div class="quick-info-header-content" style="background-color: ${getBackGroundColor(DoctorId, DepartmentId)}; color: '#FFFFFF'">
+             <div class="quick-info-title">Appointment Details</div>
+             <div class="duration-text">${getEventDetails(data)}</div>
+           </div>
+        </div>
+        ${/if}
+    </div>
+</script>
+
+<script id="quickInfoTemplatesContent" type="text/template">
+    ${if (elementType === 'cell')}
+    <div class="e-cell-content">
+        <form class="e-schedule-form">
+            <div style="padding:10px">
+            <input class="subject e-field" type="text" name="Subject" placeholder="Title" style="width:100%" />
+            </div>
+            <div style="padding:10px">
+            <input class="location e-field" type="text" name="Location" placeholder="Location" style="width:100%" />
+            </div>
+        </form>
+    </div>
+    ${else}
+    <div>
+        <div class="event-content">
+            <div class="patient-name-wrap">
+            <label>Patient Name</label>:
+            <div><span>${getPatientName(data)}</span></div>
+            </div>
+            <div class="doctor-name-wrap">
+            <label>${if (DoctorId)}Doctor Name${else}Department Name${/if}  </label>:
+            <div><span>${getDoctorName(data)}</span></div>
+            </div>
+            <div class="notes-wrap">
+            <label>Notes</label>:
+            <div><span>${Symptoms}</span></div>
+            </div>
+        </div>
+    </div>
+    ${/if}
+</script>
+
+<script type="text/javascript">
+    var intl = new ej.base.Internationalization();
+    window.getEventTime = function (startTime, endTime) {
+        return (getString(new Date(startTime), 'MMMd') + ',' + getString(new Date(startTime), 'hm') +
+            '-' + getString(new Date(endTime), 'hm'));
+    }
+    window.getDepartmentName = function (id, treatment) {
+        var specialistCategory = @Html.Raw(Json.Serialize(ViewBag.SpecialistCategory));
+        var categoryText = specialistCategory.filter(item => item.DepartmentId === id)[0].Text.toUpperCase();
+        return categoryText + ' - ' + getTreatmentDetail(treatment);
+    }
+    function getTreatmentDetail(treatment) {
+        return treatment || 'CHECKUP';
+    }
+    window.getDateHeaderText = function (value) {
+        return intl.formatDate(new Date(value), { skeleton: 'MMMEd' }).toUpperCase();
+    }
+    window.getBackGroundColor = function (doctorId, departmentId) {
+        var color;
+        var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+        if (scheduleObj.eventSettings.resourceColorField === 'Doctors' && DoctorId) {
+            var doctorsData = @Html.Raw(Json.Serialize(ViewBag.ResourceDataSource));
+            color = doctorsData.filter(item => item.Id === doctorId)[0].Color || '#7575ff';
+        } else {
+            var specialistCategory = @Html.Raw(Json.Serialize(ViewBag.SpecialistCategory));
+            color = specialistCategory.filter(item => item.DepartmentId === departmentId)[0].Color;
+        }
+        return color;
+    }
+    window.getEventDetails = function (data) {
+        return (intl.formatDate(new Date(data.StartTime), { type: 'date', skeleton: 'long' }) +
+            '(' + getString(new Date(data.StartTime), 'hm') + '-' + getString(new Date(data.EndTime), 'hm') + ')');
+    }
+    window.getPatientName = function (data) {
+        var patientsData = @Html.Raw(Json.Serialize(ViewBag.PatientsData));
+        return patientsData.filter(item => item.Id === data.PatientId)[0].Name.toString();
+    }
+    window.getDoctorName = function (data) {
+        if (data.DoctorId) {
+            var doctorsData = @Html.Raw(Json.Serialize(ViewBag.ResourceDataSource));
+            return 'Dr. ' + doctorsData.filter(item => item.Id === data.DoctorId)[0].Name.toString();
+        } else {
+            var specialistCategory = @Html.Raw(Json.Serialize(ViewBag.SpecialistCategory));
+            return specialistCategory.filter(item => item.DepartmentId === data.DepartmentId)[0].Text.toString();
+        }
+    }
+    function getString(value, type) {
+        return intl.formatDate(new Date(value), { type: 'dateTime', skeleton: type });
+    }
+</script>
+
+<script>
+    var isTreeItemDropped = false;
+    var draggedItemId = false;
+    var activeDoctorData = [];
+    var initialLoad = true;
+    var currentDate;
+    var patientValue;
+    var hospitalData;
+    var eventData;
+    var specialistCategory;
+    var resourceDataSource;
+    var selectedWaitingItem = [];
+    var activeWaitingItem = [];
+    var patientData = @Html.Raw(Json.Serialize(ViewBag.PatientsData));
+    var waitingList = @Html.Raw(Json.Serialize(ViewBag.WaitingList));
+    var doctorsData = @Html.Raw(Json.Serialize(service.Doctors));
+    function scheduleCreated() {
+        hospitalData = document.getElementById('schedule').ej2_instances[0].eventSettings.dataSource;
+        eventData = new ej.base.extend([], hospitalData, null, true);
+        specialistCategory = new ej.base.extend([], document.getElementById('schedule').ej2_instances[0].resources[0].dataSource, null, true);
+        resourceDataSource = new ej.base.extend([], document.getElementById('schedule').ej2_instances[0].resources[1].dataSource, null, true);
+    }
+    function onActionBegin(args) {
+        var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+        if (args.requestType === 'eventCreate' || args.requestType === 'eventChange') {
+            if (isTreeItemDropped) {
+                var treeObj = document.querySelector('#waitingList').ej2_instances[0];
+                var treeViewData = treeObj.fields.dataSource;
+                refreshWaitingItems(parseInt(draggedItemId, 10));
+                updateServerWaitinglist([draggedItemId]);
+                treeObj.fields.dataSource = treeViewData.filter(item => item.Id !== parseInt(draggedItemId, 10));
+                var elements = document.querySelectorAll('.e-drag-item.treeview-external-drag');
+                elements.forEach(node => remove(node));
+            }
+            var data = args.requestType === 'eventCreate' ? args.data[0] : args.changedRecords[0];
+            if (patientValue) {
+                data.PatientId = patientValue;
+                data.Name = patientData.filter(item => item.Id === patientValue)[0].Name;
+            }
+            var eventCollection = scheduleObj.eventBase.filterEvents(data.StartTime, data.EndTime);
+            var predicate = new ej.data.Predicate('Id', 'notequal', data.Id).and(new ej.data.Predicate('DepartmentId', 'equal', data.DepartmentId)).and(new ej.data.Predicate('DoctorId', 'equal', data.DoctorId)).and(new ej.data.Predicate('Id', 'notequal', data.RecurrenceID));
+            eventCollection = new ej.data.DataManager(eventCollection).executeLocal(new ej.data.Query().where(predicate));
+            if (eventCollection.length > 0) {
+                var toastObj = document.getElementById('calendarToast').ej2_instances[0];
+                args.cancel = true;
+                toastObj.content = 'An appointment already exists on the same time range, so please reschedule on different time slots.';
+                if (args.requestType !== 'eventChange') {
+                    waitingList.push(data);
+                    toastObj.content = 'An appointment already exists on the same time range, so it is added to the waiting list';
+                }
+                toastObj.show();
+            }
+            if (activeDoctorData.length > 0) {
+                updateWaitingList(activeDoctorData[0].DepartmentId);
+            }
+            else {
+                updateWaitingList();
+            }
+            if (args.requestType === 'eventCreate') {
+                if (isTreeItemDropped && activeDoctorData.length > 0) {
+                    hospitalData.push(data);
+                }
+            }
+            var activityData = {
+                Name: args.requestType === 'eventCreate' ? 'Added New Appointment' : 'Updated Appointment',
+                Message: data.Name + ' for ' + data.Symptoms,
+                Time: '5 mins ago',
+                Type: 'appointment'
+            };
+            fetch("@Url.Action("UpdateActivityData", "Home")", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(activityData)
+            });
+            isTreeItemDropped = false;
+        }
+        if (args.requestType === 'toolbarItemRendering') {
+            scheduleObj.eventSettings.fields.subject.validation = {
+                required: [true, 'Enter valid Patient Name'],
+                range: [nameValidation, 'Entered patient name is not present, please add new patient or select from list']
+            }
+            if (ej.base.Browser.isDevice) {
+                var doctorIcon = {
+                    align: 'Center',
+                    cssClass: 'app-doctor-icon',
+                    overflow: 'Show',
+                    prefixIcon: 'doctor-icon',
+                    showAlwaysInPopup: true
+                };
+                args.items.unshift(doctorIcon);
+                var waitingListItem = {
+                    align: 'Right',
+                    cssClass: 'app-waiting-list',
+                    showAlwaysInPopup: true,
+                    text: 'Waiting list',
+                    click: function (e) { onWaitingListSelect(e); }
+                };
+                args.items.push(waitingListItem);
+                args.items.splice(5, 1);
+            } else {
+                var specialistItem = { align: 'Center', cssClass: 'app-doctors' };
+                args.items.unshift(specialistItem);
+                args.items.splice(4, 2);
+            }
+        }
+    }
+    function onActionComplete(args) {
+        var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+        if (args.requestType === 'toolBarItemRendered') {
+            if (ej.base.Browser.isDevice) {
+                var doctorIconContainer = scheduleObj.element.querySelector('.app-doctor-icon');
+                var doctorIcon = doctorIconContainer.querySelector('.doctor-icon');
+                var doctorImage = ej.base.createElement('img', { className: 'active-doctor', attrs: { src: './assets/Icons/Doctors.svg' } });
+                doctorIcon.appendChild(doctorImage);
+                doctorIconContainer.style.display = 'block';
+                doctorIconContainer.onclick = () => document.getElementById('specialistObj').ej2_instances[0].show();
+            }
+        }
+        if (document.body.style.cursor === 'not-allowed') {
+            document.body.style.cursor = '';
+        }
+        if (args.requestType === 'eventCreated' || args.requestType === 'eventChanged' || args.requestType === 'eventRemoved') {
+            fetch("@Url.Action("UpdateHospitalData", "Home")", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ added: args.addedRecords, changed: args.changedRecords, deleted: args.deletedRecords })
+            });
+        }
+    }
+    function onPopupOpen(args) {
+        if (args.type === 'Editor') {
+            if (!args.element.querySelector('.custom-field-row')) {
+                var row = ej.base.createElement('div', { className: 'custom-field-row' });
+                var formElement = args.element.querySelector('.e-schedule-form');
+                formElement.firstChild.insertBefore(row, args.element.querySelector('.e-title-location-row'));
+                var container = ej.base.createElement('div', { className: 'custom-field-container' });
+                var comboBoxElement = ej.base.createElement('input', { attrs: { id: 'PatientName' } });
+                container.appendChild(comboBoxElement);
+                row.appendChild(container);
+                var comboBox = new ej.dropdowns.ComboBox({
+                    dataSource: @Html.Raw(Json.Serialize(service.Patients)),
+                    allowFiltering: true,
+                    fields: { text: 'Name', value: 'Id' },
+                    floatLabelType: 'Always',
+                    placeholder: 'PATIENT NAME',
+                    change: (e) => patientValue = e.value,
+                    select: () => {
+                        if (!ej.base.isNullOrUndefined(document.querySelector('.custom-field-row .field-error'))) {
+                            document.querySelector('.custom-field-row .field-error').style.display = 'none';
+                        }
+                    }
+                });
+                comboBox.appendTo(comboBoxElement);
+                comboBoxElement.setAttribute('name', 'Name');
+                var buttonEle = ej.base.createElement('button', { attrs: { name: 'PatientButton' } });
+                buttonEle.onclick = onAddPatient;
+                container.appendChild(buttonEle);
+                var button = new ej.buttons.Button({ iconCss: 'e-icons e-add-icon', cssClass: 'e-small e-round', isPrimary: true });
+                button.appendTo(buttonEle);
+            }
+            var comboBoxObj = args.element.querySelector('.custom-field-row input').ej2_instances[0];
+            comboBoxObj.value = args.data.PatientId || null;
+        }
+        if (args.type === 'QuickInfo') {
+            if (args.target.classList.contains('e-work-cells') || args.target.classList.contains('e-header-cells')) {
+                var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+                scheduleObj.closeQuickInfoPopup();
+                args.cancel = true;
+            } else if (args.target.classList.contains('e-appointment')) {
+                args.element.style.boxShadow = '1px 2px 5px 0 ${args.target.style.backgroundColor}';
+            }
+        }
+        if (args.type === 'EventContainer') {
+            var eventElements = args.element.querySelectorAll('.e-appointment');
+            eventElements.forEach(element => { element.querySelector('.e-subject').style.color = '#fff'; });
+        }
+    }
+    function onEventRendered(args) {
+        if (args.element.classList.contains('e-appointment')) {
+            var data = args.data;
+            var eventStart = data.StartTime;
+            var eventEnd = data.EndTime;
+            var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+            var eventCollection = scheduleObj.blockProcessed;
+            eventCollection = scheduleObj.eventBase.filterEvents(eventStart, eventEnd, eventCollection);
+            if (eventCollection.length > 0) {
+                args.cancel = true;
+                return;
+            }
+            args.element.style.color = '#fff';
+        }
+    }
+    function onNavigation(args) {
+        var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
+        currentDate = args.currentDate || scheduleObj.selectedDate;
+        if (activeDoctorData.length > 0) {
+            updateBreakHours(currentDate);
+            eventData = generateEvents(activeDoctorData[0]);
+            scheduleObj.eventSettings.dataSource = eventData;
+            updateWaitingList(activeDoctorData[0].DepartmentId);
+        } else {
+            updateWaitingList();
+        }
+    }
+    function updateBreakHours(currentDate) {
+        var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
+        var currentViewDates = [];
+        var firstDayOfWeek = ej.schedule.getWeekFirstDate(currentDate, scheduleObj.firstDayOfWeek);
+        var startDate = firstDayOfWeek;
+        var endDate = ej.schedule.addDays(new Date(startDate.getTime()), 7);
+        do {
+            currentViewDates.push(startDate);
+            startDate = ej.schedule.addDays(new Date(startDate.getTime()), 1);
+        } while (startDate.getTime() !== endDate.getTime());
+        currentViewDates.forEach(item => {
+            activeDoctorData[0].WorkDays.forEach(dayItem => {
+                if (new Date(dayItem.BreakStartHour).getDay() === item.getDay()) {
+                    dayItem.BreakStartHour = resetDateValue(dayItem.BreakStartHour, item);
+                    dayItem.BreakEndHour = resetDateValue(dayItem.BreakEndHour, item);
+                    dayItem.WorkStartHour = resetDateValue(dayItem.WorkStartHour, item);
+                    dayItem.WorkEndHour = resetDateValue(dayItem.WorkEndHour, item);
+                }
+            });
+        });
+    }
+    function resetDateValue(date, item) {
+        return new Date(new Date(date).setFullYear(item.getFullYear(), item.getMonth(), item.getDate()));
+    }
+    function generateEvents(activeData) {
+        var filteredEvents = [];
+        var datas = hospitalData.filter(item =>
+            item.DoctorId === activeData.Id || (Array.isArray(item.DoctorId) && item.DoctorId.indexOf(activeData.Id) !== -1));
+        datas.forEach(element => filteredEvents.push(element));
+        activeData.WorkDays.forEach(element => {
+            if (element.State !== 'RemoveBreak') {
+                var newBreakEvent = {
+                    Id: Math.max.apply(Math, filteredEvents.map(data => data.Id)) + 1,
+                    Name: 'Break Time',
+                    StartTime: element.BreakStartHour,
+                    EndTime: element.BreakEndHour,
+                    IsBlock: true,
+                    DoctorId: activeData.Id
+                };
+                filteredEvents.push(newBreakEvent);
+            }
+            if (element.Enable) {
+                var shiftValue = activeData.DutyTiming;
+                var obj = [];
+                if (shiftValue === 'Shift1') {
+                    var shiftTiming = {
+                        startTime: new Date(new Date(element.WorkStartHour).setHours(17)),
+                        endTime: new Date(new Date(element.WorkEndHour).setHours(21))
+                    };
+                    obj.push(shiftTiming);
+                } else if (shiftValue === 'Shift2') {
+                    var shiftTiming1 = {
+                        startTime: new Date(new Date(element.WorkStartHour).setHours(8)),
+                        endTime: new Date(new Date(element.WorkEndHour).setHours(10))
+                    };
+                    var shiftTiming2 = {
+                        startTime: new Date(new Date(element.WorkStartHour).setHours(19)),
+                        endTime: new Date(new Date(element.WorkEndHour).setHours(21))
+                    };
+                    obj.push(shiftTiming1);
+                    obj.push(shiftTiming2);
+                } else {
+                    var shiftTiming = {
+                        startTime: new Date(new Date(element.WorkStartHour).setHours(8)),
+                        endTime: new Date(new Date(element.WorkEndHour).setHours(12))
+                    };
+                    obj.push(shiftTiming);
+                }
+                obj.forEach(item => {
+                    var newBreakEvent = {
+                        Id: Math.max.apply(Math, filteredEvents.map(data => data.Id)) + 1,
+                        Name: 'Off Work',
+                        StartTime: item.StartTime,
+                        EndTime: item.EndTime,
+                        IsBlock: true,
+                        DoctorId: activeData.Id
+                    };
+                    filteredEvents.push(newBreakEvent);
+                });
+            }
+        });
+        return filteredEvents;
+    }
+    function nameValidation(e) { return patientData.filter(t => { return t.Name === e.value }).length > 0 };
+    function onDataBound(args) {
+        if (initialLoad) {
+            var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
+            currentDate = scheduleObj.selectedDate;
+            var waitingListData = [];
+            waitingList.forEach(x => {
+                x.EndTime = new Date(x.EndTime);
+                x.StartTime = new Date(x.StartTime);
+            });
+            updateWaitingList();
+            initialLoad = !initialLoad;
+        }
+    }
+    function updateWaitingList(deptId) {
+        var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
+        var firstDayOfWeek = ej.schedule.getWeekFirstDate(currentDate, @Html.Raw(Json.Serialize(service.CalendarSettings.FirstDayOfWeek)));
+        var filteredData = scheduleObj.eventBase.filterEvents(firstDayOfWeek, ej.schedule.addDays(new Date(firstDayOfWeek.getTime()), 6), waitingList);
+        if (deptId) {
+            filteredData = filteredData.filter(item => item.DepartmentId === deptId);
+        }
+        activeWaitingItem = filteredData;
+        var treeObj = document.querySelector('#waitingList').ej2_instances[0];
+        treeObj.fields.dataSource = activeWaitingItem;
+        treeObj.refresh();
+    }
+    function onDoctorSelect(args) {
+        if (args.value) {
+            refreshDataSource(args.itemData.DepartmentId, args.itemData.Id);
+            var treeObj = document.querySelector('#waitingList').ej2_instances[0];
+            treeObj.fields.dataSource = activeWaitingItem;
+        } else {
+            setDefaultData();
+        }
+    }
+    function refreshDataSource(deptId, doctorId) {
+        var filteredItems = doctorsData.filter(item => parseInt(doctorId, 10) === item.Id);
+        activeDoctorData = filteredItems;
+        var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
+        scheduleObj.workDays = filteredItems[0].AvailableDays;
+        scheduleObj.workHours = { start: filteredItems[0].StartHour, end: filteredItems[0].EndHour };
+        if (filteredItems.length > 0) {
+            updateBreakHours(scheduleObj.selectedDate);
+            eventData = generateEvents(activeDoctorData[0]);
+        } else {
+            eventData = hospitalData;
+        }
+        scheduleObj.resources[0].query = new ej.data.Query().where('DepartmentId', 'equal', parseInt(deptId, 10));
+        scheduleObj.resources[1].query = new ej.data.Query().where('Id', 'equal', parseInt(doctorId, 10));
+        scheduleObj.eventSettings.dataSource = eventData;
+        updateWaitingList(parseInt(deptId, 10));
+    }
+    function setDefaultData() {
+        var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
+        scheduleObj.resources[0].dataSource = specialistCategory;
+        scheduleObj.resources[1].dataSource = resourceDataSource;
+        scheduleObj.resources[0].query = new ej.data.Query();
+        scheduleObj.resources[1].query = new ej.data.Query();
+        eventData = hospitalData;
+        scheduleObj.eventSettings.dataSource = eventData;
+        scheduleObj.refreshEvents();
+        updateWaitingList();
+        scheduleObj.workDays = [0, 1, 2, 3, 4, 5, 6];
+        scheduleObj.workHours = { start: '08:00', end: '21:00' };
+        activeDoctorData = [];
+    }
+    function onMultiSelectOpen(args) {
+        args.popup.element.querySelector('.add-doctor').onclick = onAddDoctor;
+    }
+    function onTreeDragStop(event) {
+        var treeElement = ej.base.closest(event.target, '.e-treeview');
+        var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+        var classElement = scheduleObj.element.querySelector('.e-device-hover');
+        if (classElement) {
+            classElement.classList.remove('e-device-hover');
+        }
+        var tooltipElement = document.querySelector('.e-drag-item.e-treeview');
+        if (tooltipElement) { tooltipElement.style.display = 'block'; }
+        if (!treeElement) {
+            if (tooltipElement) { tooltipElement.style.display = 'none'; }
+            event.cancel = true;
+            var scheduleElement = ej.base.closest(event.target, '.e-content-wrap');
+            if (scheduleElement) {
+                var treeObj = document.querySelector('#waitingList').ej2_instances[0];
+                var treeviewData = treeObj.fields.dataSource;
+                if (event.target.classList.contains('e-work-cells')) {
+                    var filteredData = treeviewData.filter(item => item.Id === parseInt(event.draggedNodeData.id));
+                    var cellData = scheduleObj.getCellDetails(event.target);
+                    var doctorId;
+                    if (activeDoctorData.length > 0) {
+                        doctorId = activeDoctorData[0].Id;
+                    } else {
+                        var doctor = doctorsData.filter(item => item.DepartmentId === filteredData[0].DepartmentId);
+                        doctorId = doctor && doctor.length > 0 ? doctor[0].Id : doctorsData[0].Id;
+                    }
+                    var milliSeconds = (filteredData[0].EndTime.getTime() - filteredData[0].StartTime.getTime());
+                    var eventData = {
+                        Name: filteredData[0].Name,
+                        StartTime: cellData.startTime,
+                        EndTime: new Date(new Date(cellData.startTime).setMilliseconds(milliSeconds)),
+                        IsAllDay: cellData.isAllDay,
+                        Symptoms: filteredData[0].Disease || filteredData[0].Symptoms,
+                        PatientId: filteredData[0].PatientId,
+                        DepartmentId: filteredData[0].DepartmentId,
+                        DoctorId: doctorId
+                    };
+                    var eventCollection = scheduleObj.eventBase.filterEvents(eventData.StartTime, eventData.EndTime);
+                    eventCollection = eventCollection.filter(item => item.DoctorId === eventData.DoctorId);
+                    if (eventCollection.length > 0) {
+                        event.cancel = true;
+                        var toastObj = document.getElementById('calendarToast').ej2_instances[0];
+                        toastObj.content = 'An appointment already exists on the same time range, so please reschedule on different time slots.';
+                        toastObj.show();
+                    } else {
+                        scheduleObj.openEditor(eventData, 'Add', true);
+                        isTreeItemDropped = true;
+                        draggedItemId = event.draggedNodeData.id;
+                    }
+                }
+            }
+        }
+    }
+    function onItemDrag(event) {
+        var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+        if (scheduleObj.isAdaptive) {
+            var classElement = scheduleObj.element.querySelector('.e-device-hover');
+            if (classElement) {
+                classElement.classList.remove('e-device-hover');
+            }
+            if (event.target.classList.contains('e-work-cells')) {
+                ej.base.addClass([event.target], 'e-device-hover');
+            }
+        }
+        if (document.body.style.cursor === 'not-allowed') {
+            document.body.style.cursor = '';
+        }
+        if (event.name === 'nodeDragging') {
+            var tooltipElement = document.querySelectorAll('.e-drag-item.e-treeview');
+            var status;
+            tooltipElement.forEach(node => {
+                node.style.display = 'block';
+                status = document.querySelector('body').offsetWidth <= node.offsetLeft + node.offsetWidth;
+            });
+            var targetEle = ej.base.closest(event.target, '.droppable');
+            if (!targetEle || status) {
+                tooltipElement.forEach(node => node.style.display = 'none');
+                event.cancel = true;
+                return;
+            }
+            var dragElementIcon = document.querySelectorAll('.e-drag-item.treeview-external-drag .e-icon-expandable');
+            dragElementIcon.forEach(node => node.style.display = 'none');
+        }
+    }
+    function onToastCreated() {
+        if (ej.base.Browser.isDevice && document.getElementById('specialist')) {
+            document.getElementById('calendarToast').ej2_instances[0].width = '300px';
+            ej.base.addClass([document.getElementById('specialist')], 'e-specialist-hide');
+        }
+    }
+    function onBackIconClick(e) {
+        if (ej.base.closest(e.currentTarget.parentElement, '.waiting-list-dialog')) {
+            document.getElementById('waitingObj').ej2_instances[0].hide();
+        } else {
+            document.getElementById('specialistObj').ej2_instances[0].hide();
+        }
+    }
+    function specialistDialogOpen(args) {
+        var clearBtn = args.element.querySelector('#clearBtn');
+        if (clearBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-small'
+            });
+            btnObj.appendTo(clearBtn);
+            clearBtn.onclick = function (e) { clearSelection(); };
+        }
+    }
+    function specialistDialogCreated() {
+        document.querySelector(".specialist-selection .back-icon").onclick = onBackIconClick;
+        document.querySelector(".specialist-selection .add-doctor").onclick = onAddDoctor;
+        document.querySelectorAll(".specialist-selection .specialist-item").forEach(ele => ele.onclick = onSpecialistSelect);
+    }
+    function waitingListDialogOpen(args) {
+        var deleteBtn = args.element.querySelector('#deleteBtn');
+        var addBtn = args.element.querySelector('#addBtn');
+        if (deleteBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-flat e-small'
+            });
+            btnObj.appendTo(deleteBtn);
+            deleteBtn.onclick = function (e) { onItemDelete(); };
+        }
+        if (addBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-flat e-small'
+            });
+            btnObj.appendTo(addBtn);
+            addBtn.onclick = function (e) { onItemAdd(); };
+        }
+    }
+    function waitinglistDialogCreated() {
+        document.querySelector(".waiting-list-dialog .back-icon").onclick = onBackIconClick;
+    }
+    function clearSelection() {
+        setDefaultData();
+        var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+        var doctorImage = scheduleObj.element.querySelector('.doctor-icon .active-doctor');
+        doctorImage.setAttribute('src', './assets/Icons/Doctors.svg');
+        document.getElementById('specialistObj').ej2_instances[0].hide();
+    }
+    function onSpecialistSelect(args) {
+        var target = ej.base.closest(args.target, '.specialist-item');
+        var deptId = target.getAttribute('data-deptid');
+        var doctorId = target.getAttribute('data-doctorid');
+        refreshDataSource(deptId, doctorId);
+        var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+        var doctorImage = scheduleObj.element.querySelector('.doctor-icon .active-doctor');
+        doctorImage.setAttribute('src', './assets/images/' + activeDoctorData[0].Text + '.png');
+        document.getElementById('specialistObj').ej2_instances[0].hide();
+    }
+    function onItemChecked(args) {
+        var waitItemId = ej.base.closest(args.event.currentTarget, '.e-checkbox-wrapper').querySelector('input').id;
+        selectedWaitingItem.push(waitingList.filter(item => item.Id === parseInt(waitItemId))[0]);
+    }
+    function onItemDelete() {
+        if (selectedWaitingItem.length > 0) {
+            var activeIds = [];
+            selectedWaitingItem.forEach(activeItem => {
+                activeIds.push(activeItem.Id);
+                refreshWaitingItems(activeItem.Id)
+            });
+            selectedWaitingItem = [];
+            var treeObj = document.querySelector('#waitingList').ej2_instances[0];
+            treeObj.fields.dataSource = activeWaitingItem;
+            var ajaxHTML = new ej.base.Ajax('Home/RefreshWaitingDialog', 'POST', true);
+            ajaxHTML.send(JSON.stringify(activeIds.toString())).then(function (value) {
+                var waitingDialogContent = document.querySelector('#waitingObj .e-dlg-content');
+                if (getCurrentPage() === 'calendar' && waitingDialogContent) {
+                    waitingDialogContent.innerHTML = '';
+                    waitingDialogContent.innerHTML = value.toString();
+                    waitingDialogContent.querySelectorAll('#waiting-item-check input').forEach(ele => {
+                        var checkBoxObj = new ej.buttons.CheckBox({ checked:false, change: onItemChecked });
+                        checkBoxObj.appendTo(ele);
+                    });
+                }
+            });
+            document.getElementById('waitingObj').ej2_instances[0].hide();
+        } else {
+            var toastObj = document.getElementById('calendarToast').ej2_instances[0];
+            toastObj.content = 'Please select the waiting item to delete';
+            toastObj.show();
+        }
+    }
+    function refreshWaitingItems(id) {
+        waitingList = waitingList.filter(item => item.Id !== id);
+        activeWaitingItem = waitingList;
+    }
+    function onItemAdd() {
+        if (selectedWaitingItem.length > 0) {
+            var activeIds = [];
+            selectedWaitingItem.forEach(activeItem => {
+                var eventFilter = eventData.filter(event => event.Id === activeItem.Id);
+                if (eventFilter.length === 0) {
+                    var doctorData = activeDoctorData.length > 0 ? activeDoctorData.filter(data => data.DepartmentId === activeItem.DepartmentId) : [];
+                    var isActiveDepartment = doctorData.length > 0;
+                    if (isActiveDepartment) {
+                        activeItem.DoctorId = doctorData[0].Id;
+                    } else {
+                        var filteredData = doctorsData.filter(data => data.DepartmentId === activeItem.DepartmentId);
+                        activeItem.DoctorId = filteredData[0].Id;
+                    }
+                    eventData.push(activeItem);
+                    activeIds.push(activeItem.Id);
+                    refreshWaitingItems(activeItem.Id);
+                    if (activeDoctorData.length > 0) {
+                        hospitalData.push(activeItem);
+                    }
+                }
+            });
+            updateServerWaitinglist(activeIds);
+            selectedWaitingItem = [];
+            var waitingObj = document.getElementById('waitingObj').ej2_instances[0];
+            waitingObj.hide();
+            var scheduleObj = document.getElementById('schedule').ej2_instances[0];
+            scheduleObj.eventSettings.dataSource = eventData;
+            scheduleObj.refreshEvents();
+        } else {
+            var toastObj = document.getElementById('calendarToast').ej2_instances[0];
+            toastObj.content = 'Please select the waiting item to add';
+            toastObj.show();
+        }
+        if (activeDoctorData.length > 0) {
+            updateWaitingList(activeDoctorData[0].DepartmentId);
+        } else {
+            updateWaitingList();
+        }
+    }
+    function updateServerWaitinglist(activeIds) {
+        fetch("@Url.Action("UpdateWaitingListData", "Home")", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(activeIds)
+        });
+    }
+    function onWaitingListClosed(args) {
+        var checkboxElements = args.element.querySelectorAll('.e-checkbox');
+        checkboxElements.forEach(element => {
+            var checkbox = element.ej2_instances[0];
+            if (checkbox.checked) {
+                checkbox.checked = false;
+            }
+        });
+    }
+    function onWaitingListSelect() {
+        document.getElementById('waitingObj').ej2_instances[0].show();
+    }
+</script>
+
+<ejs-scripts></ejs-scripts>
+
+@Html.EJS().ScriptManager()
+
+<style>
+    .planner-calendar {
+  font-size: 14px;
+  margin: 30px 50px;
+  color: #9aa5bb;
+  letter-spacing: 0.05px;
+}
+
+.planner-calendar .e-all-day-appointment-wrapper,
+.planner-calendar .e-timeline-wrapper {
+  font-size: 0;
+}
+
+.planner-calendar .drag-sample-wrapper {
+  display: flex;
+  justify-content: space-between;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container {
+  padding-right: 25px;
+  width: 85%;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-schedule-toolbar-container .e-toolbar-items .e-toolbar-center .planner-dropdown {
+  margin-top: 5px;
+  margin-left: 20px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-schedule-toolbar-container .e-toolbar-pop .e-toolbar-item .e-tbar-btn.e-btn {
+  line-height: 40px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-schedule-toolbar-container .e-toolbar-pop .e-toolbar-item .e-tbar-btn.e-btn .e-icons.e-btn-icon {
+  line-height: 40px;
+  min-height: 40px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-table-container .e-month-view .e-content-wrap .e-work-cells .e-block-indicator {
+  visibility: hidden;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-table-container .e-month-view .e-content-wrap .e-work-cells .e-appointment .e-time,
+.planner-calendar .drag-sample-wrapper .schedule-container .e-table-container .e-month-view .e-content-wrap .e-work-cells .e-appointment .e-subject {
+  padding: 2px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .quick-info-header {
+  background-color: white;
+  padding: 8px 18px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .quick-info-header .quick-info-header-content {
+  height: 50px;
+  justify-content: flex-end;
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 5px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .quick-info-header .quick-info-header-content .quick-info-title {
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.48px;
+  height: 22px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .quick-info-header .quick-info-header-content .duration-text {
+  font-size: 11px;
+  letter-spacing: 0.33px;
+  height: 14px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .event-content {
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 15px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .event-content div {
+  display: flex;
+  font-size: 11px;
+  color: #666666;
+  letter-spacing: 0.33px;
+  min-height: 25px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .event-content div label {
+  display: inline-block;
+  min-width: 70px;
+  color: #666666;
+  margin: 0;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .event-content div div {
+  line-height: 25px;
+  padding: 0 0 0 12px;
+}
+
+.planner-calendar .drag-sample-wrapper .schedule-container .e-quick-popup-wrapper.e-popup-open .e-event-popup .event-content div div span {
+  font-size: 11px;
+  color: #151515;
+  letter-spacing: 0.33px;
+  line-height: 1.4;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container {
+  width: 15%;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .choose-Specialist-container .e-specialist-doctors {
+  margin-bottom: 30px;
+  margin-left: 5px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .choose-Specialist-container .e-specialist-doctors.e-specialist-hide {
+  display: none;
+  /* add event button customization */
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .add-event-container,
+.planner-calendar .drag-sample-wrapper .treeview-container .specialization-types {
+  margin: 5px;
+  width: 216px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .title-container {
+  margin-top: 45px;
+  margin-left: 10px;
+  text-align: center;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .title-container .title-text {
+  font-weight: 400;
+  font-size: 16px;
+  color: #333333;
+  letter-spacing: 0.48px;
+  font-weight: bold;
+  padding: 0 5px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag {
+  padding: 0 !important;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent {
+  height: 100%;
+  padding: 0 2px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent.e-ul {
+  overflow: hidden;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item {
+  height: 65px;
+  border-radius: 4px;
+  margin: 5px 0;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item.e-hover .e-fullrow,
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item.e-active .e-fullrow,
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item.e-active.e-hover .e-fullrow {
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none !important;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item.e-hover .e-text-content .e-list-text,
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item.e-active .e-text-content .e-list-text,
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item.e-active.e-hover .e-text-content .e-list-text {
+  color: #333333;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-fullrow {
+  height: 60px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-text-content {
+  padding: 0;
+  height: 65px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-text-content .e-list-text {
+  background: #FFF5F5;
+  border-radius: 4px;
+  height: 100%;
+  width: 100%;
+  padding: 6px 10px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text {
+  background: white;
+  border: 0.5px solid #E1E7EC;
+  height: 50px;
+  line-height: 15px;
+  padding: 0 5px;
+  width: 220px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text #waiting {
+  height: 100%;
+  padding: 0;
+  display: flex;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text #waiting #waitdetails {
+  width: 90%;
+  float: left;
+  height: 100%;
+  padding: 0;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text #waiting #waitdetails #waitlist {
+  height: 18px;
+  font-weight: 500;
+  font-size: 13px;
+  color: #333333;
+  letter-spacing: 0.39px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text #waiting #waitdetails #event-time {
+  font-size: 10px;
+  color: #333333;
+  letter-spacing: 0.3px;
+  height: 17px;
+  padding: 2px 0;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text #waiting #waitdetails #waitcategory {
+  height: 17px;
+  font-size: 10px;
+  color: #999999;
+  letter-spacing: 0.3px;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text #item-icon-container {
+  position: relative;
+  padding: 10px 0;
+}
+
+.planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag .e-list-parent .e-list-item .e-list-text #item-icon-container .item-icon {
+  position: absolute;
+  font-size: 20px;
+  color: #C0C0C0;
+}
+
+.e-drag-item.treeview-external-drag {
+  height: 65px;
+  border-radius: 4px;
+  margin: 5px 0;
+  background: #FFF5F5;
+  box-shadow: 1px 2px 4px 0 rgba(255, 0, 0, 0.25);
+}
+
+.e-drag-item.treeview-external-drag.e-hover .e-fullrow,
+.e-drag-item.treeview-external-drag.e-active .e-fullrow,
+.e-drag-item.treeview-external-drag.e-active.e-hover .e-fullrow {
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none !important;
+}
+
+.e-drag-item.treeview-external-drag.e-hover .e-text-content .e-list-text,
+.e-drag-item.treeview-external-drag.e-active .e-text-content .e-list-text,
+.e-drag-item.treeview-external-drag.e-active.e-hover .e-text-content .e-list-text {
+  color: #333333;
+}
+
+.e-drag-item.treeview-external-drag .e-fullrow {
+  height: 60px;
+}
+
+.e-drag-item.treeview-external-drag .e-text-content {
+  padding: 0;
+  height: 65px;
+}
+
+.e-drag-item.treeview-external-drag .e-text-content .e-list-text {
+  background: #FFF5F5;
+  border-radius: 4px;
+  height: 100%;
+  padding: 6px 10px;
+  border: none;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text {
+  background: white;
+  border: 0.5px solid #E1E7EC;
+  height: 50px;
+  line-height: 15px;
+  padding: 0 5px;
+  width: 220px;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text #waiting {
+  height: 100%;
+  padding: 0;
+  display: flex;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text #waiting #waitdetails {
+  width: 90%;
+  float: left;
+  height: 100%;
+  padding: 0;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text #waiting #waitdetails #waitlist {
+  height: 18px;
+  font-weight: 500;
+  font-size: 13px;
+  color: #333333;
+  letter-spacing: 0.39px;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text #waiting #waitdetails #event-time {
+  font-size: 10px;
+  color: #333333;
+  letter-spacing: 0.3px;
+  height: 17px;
+  padding: 2px 0;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text #waiting #waitdetails #waitcategory {
+  height: 17px;
+  font-size: 10px;
+  color: #999999;
+  letter-spacing: 0.3px;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text #item-icon-container {
+  position: relative;
+  padding: 10px 0;
+}
+
+.e-drag-item.treeview-external-drag .e-list-text #item-icon-container .item-icon {
+  position: absolute;
+  font-size: 20px;
+  color: #C0C0C0;
+}
+
+.e-schedule-dialog .e-dlg-content .custom-field-row {
+  padding-bottom: 12px;
+}
+
+.e-schedule-dialog .e-dlg-content .custom-field-row .custom-field-container {
+  display: grid;
+  grid-template-columns: 12fr 1fr;
+}
+
+.e-schedule-dialog .e-dlg-content .custom-field-row .custom-field-container .e-btn {
+  margin-top: 27px;
+  margin-left: 9px;
+}
+
+.e-schedule-dialog .e-dlg-content .e-add-icon::before {
+  content: '\e95c';
+}
+
+.e-schedule-dialog.e-device .e-dlg-content .custom-field-row {
+  padding-bottom: 0;
+}
+
+.e-specialist-doctors .e-list-item {
+  padding: 10px;
+}
+
+.e-specialist-doctors .e-list-item .specialist-item {
+  height: 40px;
+  width: 100%;
+  display: flex;
+  padding: 0 10px;
+}
+
+.e-specialist-doctors .e-list-item .specialist-item img {
+  height: 38px;
+  width: 38px;
+  border-radius: 16px;
+  padding: 3px;
+}
+
+.e-specialist-doctors .e-list-item .specialist-item .doctor-details {
+  height: 100%;
+  width: 80%;
+  text-indent: 0;
+  padding-left: 10px;
+}
+
+.e-specialist-doctors .e-list-item .specialist-item .doctor-details .name {
+  font-size: 13px;
+  letter-spacing: 0.39px;
+  height: 16px;
+}
+
+.e-specialist-doctors .e-list-item .specialist-item .doctor-details .designation {
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  height: 13px;
+}
+
+.e-specialist-doctors .add-doctor {
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.e-specialist-doctors .add-doctor .e-icon-add {
+  padding: 10px 0 10px 5px;
+  font-size: 10px;
+  color: #7575FF;
+  line-height: 18px;
+}
+
+.e-specialist-doctors .add-doctor .e-icon-add::before {
+  content: '\e95c';
+}
+
+.e-specialist-doctors .add-doctor .add-doctor-text {
+  font-weight: 500;
+  font-size: 12px;
+  color: #7575FF;
+  letter-spacing: 0.3px;
+  padding: 10px 5px;
+}
+
+@@media (max-width: 850px) {
+  .planner-calendar {
+    margin: 20px 10px;
+  }
+
+  .planner-calendar .drag-sample-wrapper {
+    display: block;
+  }
+
+  .planner-calendar .drag-sample-wrapper .schedule-container {
+    padding-right: 0;
+  }
+
+  .planner-calendar .drag-sample-wrapper .schedule-container .e-schedule .e-schedule-toolbar-container .e-schedule-toolbar .e-toolbar-items .e-toolbar-center {
+    padding: 7px 0;
+  }
+
+  .planner-calendar .drag-sample-wrapper .schedule-container .e-schedule .e-schedule-toolbar-container .e-schedule-toolbar .e-toolbar-items .e-toolbar-center .e-tbar-btn {
+    border-radius: 16px;
+  }
+
+  .planner-calendar .drag-sample-wrapper .schedule-container .e-schedule .e-schedule-toolbar-container .e-schedule-toolbar .e-toolbar-items .e-toolbar-center .active-doctor {
+    height: 32px;
+    width: 32px;
+    border-radius: 16px;
+  }
+
+  .planner-calendar .drag-sample-wrapper .schedule-container .e-schedule .e-schedule-toolbar-container .e-schedule-toolbar .e-toolbar-items .e-toolbar-right .e-add .e-btn-icon {
+    padding: 0;
+  }
+
+  .planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag.e-treeview {
+    width: 225px;
+  }
+
+  .planner-calendar .drag-sample-wrapper .treeview-container .treeview-external-drag.e-treeview.e-drag-item {
+    position: relative !important;
+  }
+
+  .add-doctor {
+    justify-content: center;
+  }
+
+  .add-doctor .e-icon-add {
+    padding: 12px 0 10px 5px;
+  }
+
+  .add-doctor .add-doctor-text {
+    font-size: 13px;
+    /* Dialog Customization */
+  }
+
+  .specialist-selection {
+    max-height: 98% !important;
+  }
+
+  .specialist-selection .e-dlg-header-content .e-dlg-header {
+    width: 100% !important;
+  }
+
+  .specialist-selection .e-dlg-header-content .e-dlg-header .specialist-header {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .specialist-selection .e-dlg-header-content .e-dlg-header .specialist-header div:nth-child(1) {
+    width: 70%;
+    display: flex;
+    margin: auto;
+  }
+
+  .specialist-selection .e-dlg-header-content .e-dlg-header .specialist-header div:nth-child(1) .back-icon {
+    width: 12%;
+    font-size: 25px;
+  }
+
+  .specialist-selection .e-dlg-header-content .e-dlg-header .specialist-header div:nth-child(1) .title-text {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333333;
+    letter-spacing: 0.48px;
+    padding: 2px;
+  }
+
+  .specialist-selection .e-dlg-header-content .e-dlg-header .specialist-header div:nth-child(2) {
+    width: 30%;
+  }
+
+  .specialist-selection .e-dlg-header-content .e-dlg-header .specialist-header div:nth-child(2) .e-btn {
+    width: 100%;
+  }
+
+  .specialist-selection .e-dlg-content .specialist-item {
+    height: 60px;
+    width: 100%;
+    display: flex;
+  }
+
+  .specialist-selection .e-dlg-content .specialist-item:hover {
+    background: #EBEBFF;
+  }
+
+  .specialist-selection .e-dlg-content .specialist-item img {
+    height: 46px;
+    width: 46px;
+    border-radius: 28px;
+    padding: 5px;
+  }
+
+  .specialist-selection .e-dlg-content .specialist-item .doctor-details {
+    padding: 5px;
+    width: 80%;
+    text-indent: 0;
+  }
+
+  .specialist-selection .e-dlg-content .specialist-item .doctor-details .name {
+    font-size: 15px;
+    font-weight: bold;
+    color: #333333;
+    letter-spacing: 0.39px;
+    padding: 5px;
+  }
+
+  .specialist-selection .e-dlg-content .specialist-item .doctor-details .designation {
+    font-size: 12px;
+    color: #666666;
+    letter-spacing: 0.3px;
+    padding: 5px;
+  }
+
+  .specialist-selection .e-footer-content {
+    border-top: none;
+  }
+
+  .waiting-list-dialog {
+    max-height: 98% !important;
+  }
+
+  .waiting-list-dialog .e-dlg-header {
+    width: 100% !important;
+  }
+
+  .waiting-list-dialog .e-dlg-header .waitlist-header {
+    display: flex;
+    width: 100% !important;
+  }
+
+  .waiting-list-dialog .e-dlg-header .waitlist-header .text-container {
+    display: flex;
+    flex: 1;
+  }
+
+  .waiting-list-dialog .e-dlg-header .waitlist-header .text-container span.back-icon {
+    padding: 5px 0;
+    font-size: 33px;
+    width: 35px;
+  }
+
+  .waiting-list-dialog .e-dlg-header .waitlist-header .text-container span.title-text {
+    padding: 11px 0;
+  }
+
+  .waiting-list-dialog .e-dlg-header .waitlist-header .button-container {
+    display: flex;
+    flex: 1;
+  }
+
+  .waiting-list-dialog .e-dlg-header .waitlist-header .button-container span:nth-child(1) {
+    padding-right: 15px;
+  }
+
+  .waiting-list-dialog .e-dlg-header .waitlist-header .button-container .delete-button .e-btn,
+  .waiting-list-dialog .e-dlg-header .waitlist-header .button-container .add-button .e-btn {
+    width: 100%;
+  }
+
+  .waiting-list-dialog .external-drag-items {
+    display: flex;
+    height: 60px;
+    margin-bottom: 10px;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting-item-check {
+    padding: 20px 10px;
+    flex: initial;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting {
+    flex: auto;
+    height: 100%;
+    background: #FFF5F5;
+    border: 1px solid #C0C0C0;
+    border-radius: 4px;
+    display: flex;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting #waitdetails {
+    width: 90%;
+    float: left;
+    height: 100%;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting #waitdetails #waitlist {
+    height: 18px;
+    font-weight: 500;
+    font-size: 13px;
+    color: #333;
+    letter-spacing: 0.39px;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting #waitdetails #event-time {
+    font-size: 10px;
+    color: #333333;
+    letter-spacing: 0.3px;
+    height: 17px;
+    padding: 2px 0;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting #waitdetails #waitcategory {
+    height: 17px;
+    font-size: 10px;
+    color: #999999;
+    letter-spacing: 0.3px;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting #item-icon-container {
+    position: relative;
+    padding: 15px 0;
+  }
+
+  .waiting-list-dialog .external-drag-items #waiting #item-icon-container .item-icon {
+    position: absolute;
+    font-size: 20px;
+    color: #C0C0C0;
+  }
+}
+</style>

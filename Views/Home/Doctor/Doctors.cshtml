@@ -1,0 +1,419 @@
+@using Syncfusion.EJ2
+@using AppointmentPlanner.Models;
+
+@{
+    ViewBag.Title = "Doctors";
+}
+
+<div class="doctors-wrapper">
+  <header>
+    <div class="module-title">
+      <div class="title">DOCTORS LIST</div>
+      <div class="underline"></div>
+    </div>
+    <div class="add-doctor">
+      <div class="e-icon-add e-icons"></div>
+      <div class="add-doctor-label">Add New</div>
+    </div>
+  </header>
+  <div class="specialization-detail-wrapper">
+    <div class="specialization-types">
+      <div id="specialization_select">
+          <ejs-dropdownlist id="Doctors_Specialization" dataSource="@ViewBag.SpecializationData"
+            showClearButton="true" change="onSpecializationChange" itemTemplate="#itemTemplate" valueTemplate="#valueTemplate"
+            placeholder="Select a Specialization" popupWidth="100%" popupHeight="230px">
+            <e-dropdownlist-fields text="Text" value="Id"></e-dropdownlist-fields>
+          </ejs-dropdownlist>
+      </div>
+      <ejs-button id="addDoctor" cssClass="e-normal" isPrimary="true" content="Add New Doctor"></ejs-button>
+    </div>
+    <div class="specialist-display">
+        <partial name="/Views/Home/Doctor/DoctorsList.cshtml"></partial>
+    </div>
+  </div>
+</div>
+<partial name="/Views/Home/Doctor/DoctorDialog.cshtml" />
+
+<script id="itemTemplate" type="text/template">
+    <div class="specialist-value">
+        <span class="${Id}" style="background-color: ${Color};"></span>
+        <span class="name">${Text}</span>
+    </div>
+</script>
+
+<script id="valueTemplate" type="text/template">
+    <div class="specialist-value department-value">
+        <span class="${Id}" style="background-color: ${Color};"></span>
+        <span class="name">${Text}</span>
+    </div>
+</script>
+
+<script type="text/javascript">
+    document.getElementById("addDoctor").onclick = onAddDoctor;
+    document.querySelector('.add-doctor').onclick = onAddDoctor;
+    document.querySelectorAll('.specialist-detail-container').forEach(ele => ele.onclick = onSpecialistClick);
+    renderAvailabilityToolTip();
+    function onSpecializationChange(args) {
+        var departmentId = (args && args.value && args.itemData) ? args.itemData.DepartmentId.toString() : null;
+        var data = {
+            prop: 'depatmentId',
+            value: departmentId
+        };
+        var ajaxHTML = new ej.base.Ajax('Home/FilterDoctors', 'POST', true);
+        ajaxHTML.send(JSON.stringify(data)).then(function (value) {
+            updateDoctorsList(value);
+        });
+    }
+    function onSpecialistClick(e) {
+        var specialistId = e.currentTarget.querySelector('.specialist-item').id.split('_')[1];
+        window.location.hash = '#/' + 'doctor-details/' + specialistId;
+    }
+    function updateDoctorsList(value) {
+        document.querySelector('.specialist-display').innerHTML = '';
+        document.querySelector('.specialist-display').innerHTML = value.toString();
+        document.querySelectorAll('.specialist-detail-container').forEach(ele => ele.onclick = onSpecialistClick);
+        renderAvailabilityToolTip();
+    }
+    function renderAvailabilityToolTip() {
+        var tooltipObj = new ej.popups.Tooltip({
+            height: '30px',
+            width: '76px',
+            position: 'RightTop',
+            offsetX: -10,
+            showTipPointer: false,
+            target: '.availability',
+            beforeOpen: (args) => {
+                args.element.querySelector('.e-tip-content').textContent =
+                    args.target.classList[1].charAt(0).toUpperCase() + args.target.classList[1].slice(1);
+            }
+        });
+        tooltipObj.appendTo(document.querySelector('.specialist-display'));
+    }
+</script>
+
+<ejs-scripts></ejs-scripts>
+
+@Html.EJS().ScriptManager()
+
+<style>
+.doctors-wrapper {
+  margin: 50px;
+}
+
+.doctors-wrapper header {
+  display: flex;
+}
+
+.doctors-wrapper header .module-title {
+  margin-left: 15.5px;
+  flex: auto;
+}
+
+.doctors-wrapper header .add-doctor {
+  flex: initial;
+  display: none;
+}
+
+.doctors-wrapper header .add-doctor .e-icon-add {
+  padding: 9px 0 10px 20px;
+  font-size: 10px;
+  color: #7575FF;
+}
+
+.doctors-wrapper header .add-doctor .e-icon-add::before {
+  content: '\e95c';
+}
+
+.doctors-wrapper header .add-doctor .add-doctor-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #7575FF;
+  letter-spacing: 0.39px;
+  padding: 7px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialization-types {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialization-types #specialization_select {
+  margin: 0 18px;
+  width: 200px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialization-types .specialist-value {
+  display: flex;
+  margin: 6px 0;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialization-types .specialist-value span:nth-child(1) {
+  border-radius: 6px;
+  height: 12px;
+  width: 12px;
+  margin: 3px 6px;
+  /* Specialist list item display */
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: 22px;
+  grid-row-gap: 29px;
+  padding-top: 16px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item {
+  display: flex;
+  height: 120px;
+  background: #FFFFFF;
+  box-shadow: 1px 2px 20px 0 rgba(173, 173, 255, 0.2);
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item:hover {
+  cursor: pointer;
+  box-shadow: 0px 1px 4px 1px #7575FF;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item:focus,
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item:active {
+  border-color: #7575FF;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image {
+  margin: 9.6px 16.5px 10.4px 11.5px;
+  position: relative;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image img.profile {
+  height: 100px;
+  width: 100px;
+  border-radius: 50px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image .availability {
+  border-radius: 16px;
+  border: 2px solid #FFFFFF;
+  height: 16px;
+  width: 16px;
+  margin: 3px;
+  position: absolute;
+  top: 65%;
+  left: 75%;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image .availability.busy {
+  background: #D40000;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image .availability.away {
+  background: #FF8C2E;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image .availability.available {
+  background: #00D406;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image .upload {
+  position: absolute;
+  top: 35%;
+  left: 35%;
+  display: none;
+  font-size: 30px;
+  color: white;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image:hover .upload.icon-upload_photo.new-doctor {
+  display: block;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail {
+  margin: 17.5px 0 24.5px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .name {
+  height: 19px;
+  font-size: 16px;
+  color: #333333;
+  letter-spacing: 0.48px;
+  font-weight: 500;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .education {
+  height: 16px;
+  font-size: 13px;
+  color: #333333;
+  letter-spacing: 0.33px;
+  overflow: hidden;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .education:hover {
+  overflow: visible;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience {
+  display: flex;
+  margin-top: 6px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization {
+  border-right: 1px solid #ABABAB;
+  padding-right: 12px !important;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience {
+  padding-left: 12px !important;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization,
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience {
+  display: flex;
+  flex-direction: column;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization .label-text,
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience .label-text,
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization .specialization-text,
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience .specialization-text {
+  font-size: 13px;
+  letter-spacing: 0.39px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization .label-text,
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience .label-text {
+  color: #666666;
+  margin-bottom: 6px;
+}
+
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization .specialization-text,
+.doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience .specialization-text {
+  color: #333333;
+}
+
+.specialist-value {
+  display: flex;
+  margin: 6px 0;
+}
+
+.specialist-value span:nth-child(1) {
+  border-radius: 6px;
+  height: 12px;
+  width: 12px;
+  margin-left: 20px;
+  margin-top: 7px;
+}
+
+.e-tooltip-wrap {
+  border-radius: 15px 15px 15px 0;
+  opacity: 0.8;
+  background: #333333;
+}
+
+.e-tooltip-wrap .e-tip-content {
+  border-radius: 15px 15px 15px 0;
+  font-size: 13px;
+  color: #FFFFFF;
+  letter-spacing: 0.39px;
+  padding: 5px 8px;
+}
+
+@@media (max-width: 850px) {
+  .doctors-wrapper {
+    margin: 20px 10px;
+  }
+
+  .doctors-wrapper header .module-title {
+    margin-left: 10px;
+  }
+
+  .doctors-wrapper header .add-doctor {
+    flex: initial;
+    display: flex;
+    cursor: pointer;
+  }
+
+  .doctors-wrapper header .add-doctor .add-doctor-label {
+    margin-right: 6px;
+    font-weight: 500;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialization-types {
+    display: flex;
+    margin: 21px 0 16px 0;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialization-types #Specialization {
+    flex: 1;
+    margin: 0;
+    width: 100% !important;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialization-types .e-btn {
+    display: none;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display {
+    grid-template-columns: 1fr;
+    grid-gap: 10px;
+    padding: 0;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image {
+    margin: 29.5px 16.5px 30.5px 11.3px;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image .profile {
+    height: 60px !important;
+    width: 60px !important;
+    border-radius: 30px !important;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-image .availability {
+    height: 12px;
+    width: 12px;
+    top: 60%;
+    left: 65%;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail {
+    margin: 19px 0 23px;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .name {
+    height: 19px;
+    margin-bottom: 2px;
+    padding: 0;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .education {
+    height: 14px;
+    padding: 0;
+    margin-bottom: 6px;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization {
+    padding: 0 12px 0 0 !important;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience {
+    padding: 0 0 0 12px !important;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization,
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization .label-text,
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience .label-text {
+    height: 16px;
+    margin-bottom: 6px;
+  }
+
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .specialization .specialization-text,
+  .doctors-wrapper .specialization-detail-wrapper .specialist-display .specialist-item .specialist-detail .specialist-experience .experience .specialization-text {
+    height: 16px;
+  }
+}
+</style>

@@ -1,0 +1,660 @@
+@using Syncfusion.EJ2
+@using AppointmentPlanner.Models;
+@inject AppointmentService service
+
+@{
+    ViewBag.Title = "Doctors";
+}
+
+@functions {
+    private string GetBreakDetails(WorkDay data)
+    {
+        if (data.State == "TimeOff")
+        {
+            return "TIME OFF";
+        }
+        else if (data.State == "RemoveBreak")
+        {
+            return "---";
+        }
+        else
+        {
+            return service.GetFormatDate((DateTime)data.BreakStartHour, "hh:mm tt") + "-" + service.GetFormatDate((DateTime)data.BreakEndHour, "hh:mm tt");
+        }
+    }
+}
+
+<div class="doctor-details-container">
+  <header>
+    <div class="detail-header-title">
+      <span class="back-icon icon-previous"></span>
+      <div class="module-title">
+        <div class="title">DOCTOR DETAILS</div>
+        <div class="underline"></div>
+      </div>
+    </div>
+    <div class="doctor-detail">
+      <ejs-button id="doctorDetailDelete" cssClass="e-small delete-details" content="Delete"></ejs-button>
+      <ejs-button id="doctorDetailEdit" cssClass="e-small edit-details" content="Edit"></ejs-button>
+    </div>
+  </header>
+  <div class="active-doctor">
+		<div class="active-doctor-image">
+			<img class="value" src="~/assets/images/@(ViewBag.ActiveData.Text).png" alt="doctor" />
+			<span class="availability @ViewBag.ActiveData.Availability"></span>
+			<span class="upload icon-upload_photo @ViewBag.ActiveData.NewDoctorClass"></span>
+		</div>
+		<div class="active-doctor-info" id="@ViewBag.ActiveData.Id">
+			<div class="basic-detail info-field-container">
+				<div class="name">@("Dr." + ViewBag.ActiveData.Name)</div>
+				<div class="education">@(ViewBag.ActiveData.Education != null ? ViewBag.ActiveData.Education.ToUpper() : "")</div>
+				<div class="designation">@ViewBag.ActiveData.Designation</div>
+			</div>
+			<div class="speciality-detail info-field-container">
+				<div class="label-text">Specialization</div>
+				<div class="specialization">@ViewBag.GetSpecializationText</div>
+			</div>
+			<div class="work-experience info-field-container">
+				<div class="label-text">Experience</div>
+				<div class="experience">@ViewBag.ActiveData.Experience</div>
+			</div>
+			<div class="work-availability info-field-container">
+				<div class="label-text">Availability</div>
+				<div class="available-days">@ViewBag.GetAvailability</div>
+			</div>
+			<div class="contact-info info-field-container">
+				<div class="label-text">Mobile</div>
+				<div class="mobile">@ViewBag.ActiveData.Mobile</div>
+			</div>
+		</div>
+		<div class="work-days-container">
+			<header>
+				<div class="title-text">Break Hours</div>
+				<div class="add-container">
+					<ejs-button id="doctorsAdd" cssClass="e-small e-round" iconCss="e-icons e-add-icon" isPrimary="true"></ejs-button>
+					<span class="button-label">Add</span>
+				</div>
+			</header>
+			<div class="work-days-content">
+				@foreach (WorkDay data in ViewBag.ActiveData.WorkDays)
+				{
+					<div class="work-day-item">
+						<div class="day-name">@(data.Day.Substring(0, 1).ToUpper())@data.Day.Substring(1)</div>
+						<div class="@("day-break-hours " + data.State)">@Html.Raw(GetBreakDetails(data))</div>
+					</div>
+				}
+			</div>
+		</div>
+  </div>
+</div>
+<div class="break-hours-container" style="display:none">
+  <ejs-dialog id="breakHourDialog" width="445px" cssClass="break-hour-dialog" isModal="true" visible="false"
+    header="Break Hours" showCloseIcon="true" target="body" footerTemplate="<div class='button-container'><button id='cancel'>Cancel</button><button id='save'>Save</button></div>" beforeOpen="breakHourDialogOpen">
+    <e-dialog-animationsettings effect="None"></e-dialog-animationsettings>
+    <e-content-template>
+      <form>
+        <div class="break-hour-operations">
+          * Click on day to add break, double click to take time off and third click to remove break
+        </div>
+        <div class="break-hour-header">
+          <div></div>
+          <div>Start Time</div>
+          <div>End Time</div>
+        </div>
+        @foreach (WorkDay day in ViewBag.ActiveData.WorkDays)
+        {
+            <div class="break-hour-days">
+              <div class="@("day-button " + day.State)">
+                <ejs-button id="@(day.Day + "_button")" cssClass="e-small e-round" isPrimary="true" data-state="@day.State" content="@(day.Day.Substring(0, 1).ToUpper())"></ejs-button>
+              </div>
+              <div class="@("start-container " + day.State)">
+                <ejs-timepicker cssClass="e-field" id="@(day.Day + "_start")" enabled="@(day.State != "RemoveBreak")"
+                  value="@day.BreakStartHour" showClearButton="false"></ejs-timepicker>
+              </div>
+              <div class="@("end-container " + day.State)">
+                <ejs-timepicker cssClass="e-field" id="@(day.Day + "_end")" enabled="@(day.State != "RemoveBreak")"
+                  value="day.BreakEndHour" showClearButton="false"></ejs-timepicker>
+              </div>
+              <div class="@("state-container " + @day.State)">
+                <div>Time Off</div>
+              </div>
+            </div>
+        }
+      </form>
+    </e-content-template>
+  </ejs-dialog>
+</div>
+<partial name="/Views/Home/Doctor/DoctorDialog.cshtml" />
+<div class="delete-confirmation-container" style="display:none">
+  <ejs-dialog id="deleteConfirmationDialog" width="445px" cssClass="break-hour-dialog" isModal="true" visible="false"
+    header="Doctor Details" showCloseIcon="true" target="body" footerTemplate="<div class='button-container'><button id='delete'>Ok</button><button id='deleteCancel'>Cancel</button></div>" beforeOpen="deleteConfirmDialogOpen">
+    <e-dialog-animationsettings effect="None"></e-dialog-animationsettings>
+    <e-content-template>
+      <form>
+        <div>Are you sure you want to delete this doctor?</div>
+      </form>
+    </e-content-template>
+  </ejs-dialog>
+</div>
+
+<script type="text/javascript">
+	document.querySelector('.back-icon.icon-previous').onclick = onBackIconClick;
+	document.querySelector('#doctorDetailDelete').onclick = onDoctorDelete;
+	document.querySelector('#doctorDetailEdit').onclick = showDoctorDetails;
+	document.querySelector('.add-container').onclick = onAddBreak;
+	var breakDays = @Html.Raw(Json.Serialize(ViewBag.ActiveData.WorkDays));
+	var activeData = @Html.Raw(Json.Serialize(ViewBag.ActiveData));
+    function breakHourDialogOpen(args) {
+        var cancelBtn = args.element.querySelector('#cancel');
+        var saveBtn = args.element.querySelector('#save');
+        if (cancelBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal'
+            });
+			btnObj.appendTo(cancelBtn);
+            cancelBtn.onclick = function (e) { onCancelClick(); };
+        }
+        if (saveBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal',
+                isPrimary: true
+            });
+            btnObj.appendTo(saveBtn);
+            saveBtn.onclick = function (e) { onSaveClick(); };
+        }
+    }
+	function onSaveClick() {
+		debugger;
+		var formElement = [].slice.call(document.querySelectorAll('.break-hour-dialog .e-field'));
+		var workDays = JSON.parse(JSON.stringify(breakDays));
+		for (var curElement of formElement) {
+			var dayName = curElement.querySelector('input').getAttribute('id').split('_')[0];
+			var valueName = curElement.querySelector('input').getAttribute('id').split('_')[1];
+			var instance = curElement.querySelector('input').ej2_instances[0];
+			for (var workDay of workDays) {
+				if (workDay.Day === dayName) {
+					if (valueName === 'start') {
+						workDay.BreakStartHour = instance.value;
+						workDay.WorkStartHour = new Date(workDay.WorkStartHour);
+					} else {
+						workDay.BreakEndHour = instance.value;
+						workDay.WorkEndHour = new Date(workDay.WorkEndHour);
+					}
+				}
+				workDay.Enable = !(workDay.State === 'TimeOff');
+			}
+		}
+		var availableDays = [];
+		workDays.forEach(workDay => {
+			if (workDay.Enable) {
+				availableDays.push(workDay.Index);
+			}
+		});
+		activeData.AvailableDays = availableDays.length === 0 ? [activeData.AvailableDays[0]] : availableDays;
+		if (availableDays.length === 0) {
+			workDays[activeData.AvailableDays[0]].Enable = true;
+			workDays[activeData.AvailableDays[0]].State = 'AddBreak';
+		}
+		var ajaxHTML = new ej.base.Ajax('Home/UpdateBreakHours', 'POST', true);
+		ajaxHTML.send(JSON.stringify(workDays)).then(function (value) {
+			updateDoctorDetail(value);
+		});
+		document.querySelector('#breakHourDialog').ej2_instances[0].hide();
+	}
+	function onCancelClick() {
+		var breakHourdialog = document.querySelector('#breakHourDialog');
+		if (breakHourdialog) {
+			breakDays.forEach(workDay => {
+				if (workDay.State === 'AddBreak') {
+					var start = breakHourdialog.querySelector('#' + workDay.Day + '_start');
+					var end = breakHourdialog.querySelector('#' + workDay.Day + '_end');
+					if (start) {
+						start.ej2_instances[0].value = new Date(workDay.BreakStartHour);
+
+					}
+					if (end) {
+						end.ej2_instances[0].value = new Date(workDay.BreakEndHour);
+					}
+				}
+			});
+			breakHourdialog.ej2_instances[0].hide();
+		}
+	}
+    function deleteConfirmDialogOpen(args) {
+        var deleteBtn = args.element.querySelector('#delete');
+        var cancelBtn = args.element.querySelector('#deleteCancel');
+        if (deleteBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal',
+                isPrimary: true
+            });
+            btnObj.appendTo(deleteBtn);
+            deleteBtn.onclick = function (e) { onDeleteClick(); };
+        }
+        if (cancelBtn) {
+            var btnObj = new ej.buttons.Button({
+                cssClass: 'e-normal'
+            });
+            btnObj.appendTo(cancelBtn);
+            cancelBtn.onclick = function (e) { onDeleteCancelClick(); };
+        }
+    }
+	function onDeleteClick() {
+		var data = {
+			prop: 'Id',
+			value: document.querySelector('.active-doctor-info').id
+		};
+		var ajaxHTML = new ej.base.Ajax('Home/DeleteDoctorDetail', 'POST', true);
+		ajaxHTML.send(JSON.stringify(data)).then(function (value) {
+			updateDoctorDetail(value);
+		});
+		onDeleteCancelClick();
+	}
+	function onDeleteCancelClick() {
+		var confirmationDialog = document.querySelector('#deleteConfirmationDialog');
+		if (confirmationDialog) {
+			confirmationDialog.ej2_instances[0].hide();
+		}
+	}
+	function onBackIconClick() {
+		window.location.hash = '#/' + 'doctors';
+	}
+	function onDoctorDelete() {
+		var confirmationDialog = document.querySelector('#deleteConfirmationDialog');
+		if (confirmationDialog) {
+			confirmationDialog.ej2_instances[0].show();
+		}
+	}
+	function onAddBreak() {
+		var breakHourdialog = document.querySelector('#breakHourDialog');
+		if (breakHourdialog) {
+			breakHourdialog.ej2_instances[0].show();
+		}
+	}
+</script>
+
+<ejs-scripts></ejs-scripts>
+
+@Html.EJS().ScriptManager()
+
+<style>
+.doctor-details-container {
+	margin: 50px 57px;
+}
+
+.doctor-details-container header {
+	display: flex;
+	margin-bottom: 34.2px;
+	flex-direction: column;
+}
+
+.doctor-details-container header .detail-header-title {
+	display: flex;
+}
+
+.doctor-details-container header .detail-header-title span {
+	padding-right: 10px;
+	font-size: 25px;
+	cursor: pointer;
+}
+
+.doctor-details-container header .detail-header-title .e-add-icon {
+	padding: 0 6px;
+}
+
+.doctor-details-container header .doctor-detail {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.doctor-details-container header .doctor-detail .edit-details,
+.doctor-details-container header .doctor-detail .delete-details {
+	width: 100px;
+	height: 32px;
+	color: white;
+}
+
+.doctor-details-container header .doctor-detail .edit-details {
+	background-color: #7575ff;
+}
+
+.doctor-details-container header .doctor-detail .delete-details {
+	margin-right: 16px;
+	background-color: #ff4f4f;
+}
+
+.doctor-details-container .active-doctor {
+	display: grid;
+	grid-template-columns: 0.3fr 1fr 1fr;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .designation,
+.doctor-details-container .active-doctor .active-doctor-info .label-text,
+.doctor-details-container .active-doctor .active-doctor-info .specialization,
+.doctor-details-container .active-doctor .active-doctor-info .experience,
+.doctor-details-container .active-doctor .active-doctor-info .available-days,
+.doctor-details-container .active-doctor .active-doctor-info .mobile,
+.doctor-details-container .active-doctor .work-days-container header .title-text,
+.doctor-details-container .active-doctor .work-days-content .day-name,
+.doctor-details-container .active-doctor .work-days-content .day-break-hours {
+	font-size: 13px;
+	letter-spacing: 0.39px;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .designation,
+.doctor-details-container .active-doctor .active-doctor-info .specialization,
+.doctor-details-container .active-doctor .active-doctor-info .experience,
+.doctor-details-container .active-doctor .active-doctor-info .available-days,
+.doctor-details-container .active-doctor .active-doctor-info .mobile,
+.doctor-details-container .active-doctor .work-days-content .day-name,
+.doctor-details-container .active-doctor .work-days-content .day-break-hours {
+	color: #333;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image {
+	position: relative;
+	display: flex;
+	margin: 0 auto;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image img {
+	height: 100px;
+	width: 100px;
+	border-radius: 50px;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image .availability {
+	height: 16px;
+	width: 16px;
+	top: 70px;
+	left: 77px;
+	position: absolute;
+	border: 2px solid #fff;
+	border-radius: 16px;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image .availability.busy {
+	background: #d40000;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image .availability.away {
+	background: #ff8c2e;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image .availability.available {
+	background: #00d406;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image .upload {
+	position: absolute;
+	top: 35px;
+	left: 35px;
+	display: none;
+	font-size: 30px;
+	color: white;
+}
+
+.doctor-details-container .active-doctor .active-doctor-image:hover .upload.icon-upload_photo.new-doctor {
+	display: block;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info {
+	flex: 1;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .label-text {
+	color: #666;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .info-field-container {
+	margin-bottom: 20px;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .info-field-container div.name {
+	padding-bottom: 3px;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .info-field-container div.education {
+	padding-bottom: 7px;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .info-field-container div.label-text {
+	padding-bottom: 4px;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .basic-detail .name {
+	font-weight: 600;
+	font-size: 18px;
+	color: #333;
+	letter-spacing: 0.54px;
+	height: 22px;
+	font-weight: bold;
+}
+
+.doctor-details-container .active-doctor .active-doctor-info .basic-detail .education {
+	font-size: 10px;
+	color: #333;
+	letter-spacing: 0.3px;
+	height: 13px;
+}
+
+.doctor-details-container .active-doctor .work-days-container {
+	flex: 2;
+}
+
+.doctor-details-container .active-doctor .work-days-container header {
+	display: flex;
+	margin-bottom: 17.9px;
+	flex-direction: row;
+}
+
+.doctor-details-container .active-doctor .work-days-container header .title-text {
+	margin: 5px 0;
+	color: #666;
+}
+
+.doctor-details-container .active-doctor .work-days-container header .add-container {
+	padding-left: 18.3px;
+	display: flex;
+}
+
+.doctor-details-container .active-doctor .work-days-container header .add-container .e-btn {
+	width: 23.3px;
+	height: 22.8px;
+	margin: 2px 0;
+}
+
+.doctor-details-container .active-doctor .work-days-container header .add-container .e-btn .e-btn-icon {
+	font-size: 11px;
+}
+
+.doctor-details-container .active-doctor .work-days-container header .add-container .button-label {
+	margin: auto 0;
+	font-weight: 500;
+	font-size: 13px;
+	color: #7575ff;
+	letter-spacing: 0.39px;
+	padding: 0 10px;
+	cursor: pointer;
+}
+
+.doctor-details-container .active-doctor .work-days-container header .e-add-icon::before {
+	content: '\e95c';
+}
+
+.doctor-details-container .active-doctor .work-days-container .work-days-content .work-day-item {
+	display: grid;
+	grid-template-columns: 100px auto;
+	padding-bottom: 10px;
+}
+
+.doctor-details-container .active-doctor .work-days-container .work-days-content .work-day-item .day-break-hours.TimeOff {
+	font-size: 13px;
+	color: #f00;
+	letter-spacing: 0.39px;
+}
+
+.break-hour-dialog {
+	max-height: 98% !important;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-operations {
+	font-weight: 600;
+	font-size: 11px;
+	color: #666;
+	letter-spacing: 0.33px;
+	line-height: 18px;
+	padding-bottom: 20px;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-header {
+	display: flex;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-header div:nth-child(1) {
+	flex: 0.25;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-header div:nth-child(2),
+.break-hour-dialog .e-dlg-content .break-hour-header div:nth-child(3) {
+	flex: 1;
+	margin: 0 30px;
+	font-weight: 600;
+	font-size: 11px;
+	color: #666;
+	letter-spacing: 0.33px;
+}
+
+.break-hour-dialog .e-dlg-content :nth-child(3).break-hour-days {
+	padding-top: 7px !important;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days {
+	display: flex;
+	padding-top: 21px;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .day-button {
+	height: 32px;
+	width: 32px;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .day-button .e-btn {
+	background: #7575ff;
+	border-color: #7575ff;
+	height: 32px;
+	width: 32px;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .day-button.TimeOff {
+	margin: 5px 0;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .day-button.TimeOff .e-btn {
+	background: #f00;
+	border-color: #f00;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .day-button.RemoveBreak .e-btn {
+	background: #fff;
+	border: 1px solid #c0c0c0;
+	color: #333;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .start-container {
+	margin: 0 14.4px 0 16px;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .start-container.TimeOff,
+.break-hour-dialog .e-dlg-content .break-hour-days .end-container.TimeOff {
+	display: none;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .state-container:not(.TimeOff) {
+	display: none;
+}
+
+.break-hour-dialog .e-dlg-content .break-hour-days .state-container.TimeOff {
+	display: block;
+	margin: auto 27.9px;
+	font-size: 13px;
+	color: #333;
+	letter-spacing: 0.39px;
+}
+
+@@media (max-width: 850px) {
+	.doctor-details-container {
+		margin: 20px 29px;
+	}
+
+	.doctor-details-container header {
+		flex-direction: row;
+		margin: 10px 0;
+	}
+
+	.doctor-details-container header .detail-header-title {
+		flex: auto;
+	}
+
+	.doctor-details-container header .doctor-detail {
+		justify-content: normal;
+	}
+
+	.doctor-details-container header .doctor-detail .delete-details,
+	.doctor-details-container header .doctor-detail .edit-details {
+		width: 70px;
+	}
+
+	.doctor-details-container header .doctor-detail .delete-details {
+		margin-right: 10px;
+	}
+
+	.doctor-details-container .active-doctor {
+		grid-template-rows: 0fr 1fr 1fr;
+		grid-template-columns: none;
+	}
+
+	.doctor-details-container .active-doctor .active-doctor-image {
+		margin-bottom: 35px;
+		margin-top: 21px;
+	}
+
+	.doctor-details-container .active-doctor .active-doctor-image .availability {
+		left: 80px;
+		top: 65px;
+	}
+
+	.doctor-details-container .active-doctor .active-doctor-image .upload {
+		top: 30%;
+		left: 35%;
+	}
+
+	.doctor-details-container .active-doctor .active-doctor-info .info-field-container.basic-detail .name {
+		height: 29px;
+		padding-bottom: 3px;
+	}
+
+	.doctor-details-container .active-doctor .work-days-container header {
+		margin: 0;
+	}
+
+	.doctor-details-container .active-doctor .work-days-container header .title-text {
+		margin-top: 5px;
+		margin-right: 18.7px;
+	}
+
+	.doctor-details-container .active-doctor .work-days-container header div:nth-child(2) {
+		display: flex;
+	}
+
+	.doctor-details-container .active-doctor .work-days-container header div:nth-child(2) .button-label {
+		padding-right: 6.6px;
+		margin: auto 0;
+	}
+
+	.doctor-details-container .active-doctor .work-days-container .work-days-content .work-day-item {
+		padding: 0;
+		padding-top: 14.4px;
+	}
+}
+</style>

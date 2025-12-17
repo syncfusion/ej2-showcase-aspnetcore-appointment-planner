@@ -364,6 +364,7 @@
                     placeholder: 'PATIENT NAME',
                     change: (e) => patientValue = e.value,
                     select: () => {
+                        patientData = document.querySelector('.e-combobox').ej2_instances[0].dataSource;
                         if (!ej.base.isNullOrUndefined(document.querySelector('.custom-field-row .field-error'))) {
                             document.querySelector('.custom-field-row .field-error').style.display = 'none';
                         }
@@ -539,22 +540,44 @@
             setDefaultData();
         }
     }
-    function refreshDataSource(deptId, doctorId) {
-        var filteredItems = doctorsData.filter(item => parseInt(doctorId, 10) === item.Id);
-        activeDoctorData = filteredItems;
-        var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
-        scheduleObj.workDays = filteredItems[0].AvailableDays;
-        scheduleObj.workHours = { start: filteredItems[0].StartHour, end: filteredItems[0].EndHour };
-        if (filteredItems.length > 0) {
-            updateBreakHours(scheduleObj.selectedDate);
-            eventData = generateEvents(activeDoctorData[0]);
-        } else {
-            eventData = hospitalData;
-        }
-        scheduleObj.resources[0].query = new ej.data.Query().where('DepartmentId', 'equal', parseInt(deptId, 10));
-        scheduleObj.resources[1].query = new ej.data.Query().where('Id', 'equal', parseInt(doctorId, 10));
-        scheduleObj.eventSettings.dataSource = eventData;
-        updateWaitingList(parseInt(deptId, 10));
+        function refreshDataSource(deptId, doctorId) {
+        // Fetch the latest doctors list from server, then apply the filter and update the schedule
+        fetch("@Url.Action("GetDoctors", "Home")", { method: "GET", headers: { "Accept": "application/json" } })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                // overwrite client-side cache with fresh data
+                doctorsData = data;
+
+                var filteredItems = doctorsData.filter(item => parseInt(doctorId, 10) === item.Id);
+                activeDoctorData = filteredItems;
+
+                var scheduleObj = document.querySelector('#schedule').ej2_instances[0];
+
+                if (filteredItems && filteredItems.length > 0) {
+                    // update work days / hours from the selected doctor
+                    scheduleObj.workDays = filteredItems[0].AvailableDays;
+                    scheduleObj.workHours = { start: filteredItems[0].StartHour, end: filteredItems[0].EndHour };
+
+                    // recompute break/off-work events for selected doctor
+                    updateBreakHours(scheduleObj.selectedDate);
+                    eventData = generateEvents(activeDoctorData[0]);
+                } else {
+                    // fallback to full hospital data
+                    eventData = hospitalData;
+                }
+
+                // update resource queries so only the selected department/doctor show
+                scheduleObj.resources[0].query = new ej.data.Query().where('DepartmentId', 'equal', parseInt(deptId, 10));
+                scheduleObj.resources[1].query = new ej.data.Query().where('Id', 'equal', parseInt(doctorId, 10));
+
+                scheduleObj.eventSettings.dataSource = eventData;
+                // if required, force UI refresh for resources and events
+                if (scheduleObj.refreshEvents) { scheduleObj.refreshEvents(); }
+                updateWaitingList(parseInt(deptId, 10));
+            })
+            .catch(function (err) {
+                console.error("Failed to refresh doctors from server:", err);
+            });
     }
     function setDefaultData() {
         var scheduleObj = document.querySelector('#schedule').ej2_instances[0];

@@ -20,6 +20,12 @@ namespace AppointmentPlanner.Controllers
         }
 
         [HttpGet]
+        public IActionResult GetDoctors()
+        {
+            return Json(service.Doctors);
+        }
+
+        [HttpGet]
         public PartialViewResult DashBoard()
         {
             DateTime startDate = service.StartDate;

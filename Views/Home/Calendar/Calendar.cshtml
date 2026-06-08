@@ -200,8 +200,8 @@
             '(' + getString(new Date(data.StartTime), 'hm') + '-' + getString(new Date(data.EndTime), 'hm') + ')');
     }
     window.getPatientName = function (data) {
-        var patientsData = @Html.Raw(Json.Serialize(ViewBag.PatientsData));
-        return patientsData.filter(item => item.Id === data.PatientId)[0].Name.toString();
+        var found = patientData.filter(item => item.Id === data.PatientId)[0];
+        return found ? found.Name : '';
     }
     window.getDoctorName = function (data) {
         if (data.DoctorId) {

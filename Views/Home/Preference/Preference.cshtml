@@ -57,18 +57,24 @@
 
 <script type="text/javascript">
     function onValueChange(args) {
-        var element = args.element.getAttribute('id')
-        var data = {
-            prop : element.toString(),
-            value: args.value.toString()
+        var element = args.element.getAttribute('id');
+        var value = args.value.toString();
+        
+        var request = {
+            prop: element,
+            value: value
         };
+        sendPreferenceUpdate(request);
+    }
+
+    function sendPreferenceUpdate(request) {
         fetch("@Url.Action("UpdatePreference", "Home")", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(data)
-        });
+            body: JSON.stringify(request)
+        })
     }
 </script>
 
